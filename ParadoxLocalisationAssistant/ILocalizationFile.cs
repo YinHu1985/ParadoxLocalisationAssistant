@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ParadoxLocalisationKit
+namespace ParadoxLocalisationAssistant
 {
     public interface ILocalizationFile
     {

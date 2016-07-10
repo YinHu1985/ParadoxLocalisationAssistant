@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using System.IO;
 using System.Text.RegularExpressions;
 
-namespace ParadoxLocalisationKit
+namespace ParadoxLocalisationAssistant
 {
     public static class Localization
     {

@@ -36,7 +36,7 @@ using System.IO;
 //
 
 
-namespace ParadoxLocalisationKit
+namespace ParadoxLocalisationAssistant
 {
     class Program
     {

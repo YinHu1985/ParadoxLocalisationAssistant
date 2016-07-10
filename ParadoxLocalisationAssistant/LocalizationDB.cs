@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using System.IO;
 using System.Runtime.Serialization.Json;
 
-namespace ParadoxLocalisationKit
+namespace ParadoxLocalisationAssistant
 {
     /// <summary>
     /// Localization data collection for a single language

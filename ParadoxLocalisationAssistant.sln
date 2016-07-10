@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
 VisualStudioVersion = 14.0.25123.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ParadoxLocalisationKit", "ParadoxLocalisationKit\ParadoxLocalisationKit.csproj", "{1B7F9611-8E3D-4897-813D-98FF9DCA2140}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ParadoxLocalisationAssistant", "ParadoxLocalisationAssistant\ParadoxLocalisationAssistant.csproj", "{1B7F9611-8E3D-4897-813D-98FF9DCA2140}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
