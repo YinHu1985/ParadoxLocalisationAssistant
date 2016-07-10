@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.IO;
+using System.Text.RegularExpressions;
 
 namespace ParadoxLocalisationKit
 {
@@ -291,5 +292,228 @@ namespace ParadoxLocalisationKit
             }
             return result;
         }
+
+        /// <summary>
+        /// Merge input into target.
+        /// </summary>
+        /// <param name="target"></param>
+        /// <param name="input"></param>
+        /// <param name="mode"></param>
+        /// <returns></returns>
+        static public int MergeIn(SingleLanguageDB target, SingleLanguageDB input, LocalizationDB.ImportMode mode = LocalizationDB.ImportMode.kReplace)
+        {
+            int count = 0;
+            foreach (var entry in input)
+            {
+                foreach (var kv in entry.Value)
+                {
+                    if (target.Import(entry.Key, kv.Key, kv.Value, mode))
+                        ++count;
+                }
+
+            }
+            return count;
+        }
+
+        static bool IsCJK(string input)
+        {
+            var Regex = new Regex(@"\p{IsCJKUnifiedIdeographs}");
+
+            if (Regex.IsMatch(input))
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        static string ScanExtraSpace(string input)
+        {
+            var Regex = new Regex(@"(\p{IsCJKUnifiedIdeographs}) +(§[^!]\p{IsCJKUnifiedIdeographs})");
+            string replacement = "$1$2";
+            string result = Regex.Replace(input, replacement);
+            Regex = new Regex(@"(\p{IsCJKUnifiedIdeographs}§!) +(\p{IsCJKUnifiedIdeographs})");
+            replacement = "$1$2";
+            result = Regex.Replace(result, replacement);
+            return result;
+        }
+
+        static void ScanSpecialToken(string str, out Dictionary<string, int> dollar, out Dictionary<string, int> bracket,
+            out Dictionary<string, int> color, out Dictionary<string, int> pic, out int currency)
+        {
+            dollar = new Dictionary<string, int>();
+            bracket = new Dictionary<string, int>();
+            color = new Dictionary<string, int>();
+            pic = new Dictionary<string, int>();
+            currency = 0;
+            for (int i = 0; i < str.Length; ++i)
+            {
+                if (str[i] == '$')
+                {
+                    string token = "";
+                    while (++i < str.Length)
+                    {
+
+                        if (str[i] != '$')
+                            token += str[i];
+                        else
+                            break;
+                    }
+                    if (token == "")
+                        token = "EOL";
+                    if (dollar.ContainsKey(token))
+                        dollar[token]++;
+                    else
+                        dollar[token] = 1;
+                    continue;
+                }
+                else if (str[i] == '[')
+                {
+                    string token = "";
+                    while (++i < str.Length)
+                    {
+                        if (str[i] != ']')
+                            token += str[i];
+                        else
+                            break;
+                    }
+                    if (token == "")
+                        token = "EOL";
+                    if (bracket.ContainsKey(token))
+                        bracket[token]++;
+                    else
+                        bracket[token] = 1;
+                    continue;
+                }
+                else if (str[i] == '§')
+                {
+                    string token = "";
+                    if (++i < str.Length)
+                    {
+                        token += str[i];
+                    }
+                    else
+                    {
+                        token = "EOL"; // just in case...
+                    }
+                    if (color.ContainsKey(token))
+                        color[token]++;
+                    else
+                        color[token] = 1;
+                    continue;
+                }
+                else if (str[i] == '£')
+                {
+                    string token = "";
+                    while (++i < str.Length)
+                    {
+                        if (str[i] != ' ' && str[i] != '|' && str[i] != '£')
+                            token += str[i];
+                        else
+                            break;
+                    }
+                    if (token == "")
+                        token = "EOL";
+                    if (pic.ContainsKey(token))
+                        pic[token]++;
+                    else
+                        pic[token] = 1;
+                    continue;
+                }
+                else if (str[i] == '¤')
+                {
+                    currency++;
+                }
+            }
+        }
+
+        static bool CompareDic(Dictionary<string, int> left, Dictionary<string, int> right)
+        {
+            if (left == null || right == null)
+                return false;
+            if (left.Count != right.Count)
+                return false;
+            foreach (var kv in left)
+            {
+                if (!right.ContainsKey(kv.Key))
+                    return false;
+                if (kv.Value != right[kv.Key])
+                    return false;
+            }
+            return true;
+        }
+
+        static bool SameSpecialCharacters(string str1, string str2)
+        {
+            if (str1 == null || str2 == null)
+                return false;
+            Dictionary<string, int> dollar1, dollar2;
+            Dictionary<string, int> color1, color2;
+            Dictionary<string, int> bracket1, bracket2;
+            Dictionary<string, int> pic1, pic2;
+            int currency1, currency2;
+
+            ScanSpecialToken(str1, out dollar1, out bracket1, out color1, out pic1, out currency1);
+            ScanSpecialToken(str2, out dollar2, out bracket2, out color2, out pic2, out currency2);
+
+            if (!CompareDic(dollar1, dollar2) || !CompareDic(bracket1, bracket2)
+                || !CompareDic(color1, color2) || !CompareDic(pic1, pic2) || currency1 != currency2)
+                return false;
+
+            return true;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="original"></param>
+        /// <param name="translation"></param>
+        /// <param name="removeRedundant"></param>
+        /// <returns></returns>
+        static public List<Tuple<string, int, string, string>> CheckTranslation(SingleLanguageDB original, SingleLanguageDB translation)
+        {
+            List<Tuple<string, int, string, string>> check = new List<Tuple<string, int, string, string>>();
+            foreach (var entry in translation)
+            {
+                foreach (var kv in entry.Value)
+                {
+                    string engText = original.LookupText(entry.Key, kv.Key);
+                    if (engText == null || engText == kv.Value)
+                    {
+                        check.Add(new Tuple<string, int, string, string>(entry.Key, kv.Key, engText, kv.Value));
+                    }
+                    else if (!SameSpecialCharacters(engText, kv.Value))
+                    {
+                        check.Add(new Tuple<string, int, string, string>(entry.Key, kv.Key, engText, kv.Value));
+                    }
+                }
+
+            }
+            return check;
+        }
+        
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="translation"></param>
+        static public void ScanExtraSpace(SingleLanguageDB translation)
+        {
+            List<Tuple<string, int, string>> toModify = new List<Tuple<string, int, string>>();
+            foreach (var entry in translation)
+            {
+                foreach (var key in entry.Value.Keys)
+                {
+                    string newstr = ScanExtraSpace(entry.Value[key]);
+                    if (newstr != entry.Value[key])
+                        toModify.Add(new Tuple<string, int, string>(entry.Key, key, newstr));
+                }
+            }
+
+            foreach (var it in toModify)
+                translation.Import(it.Item1, it.Item2, it.Item3, LocalizationDB.ImportMode.kReplace);
+        }
+
     }
 }

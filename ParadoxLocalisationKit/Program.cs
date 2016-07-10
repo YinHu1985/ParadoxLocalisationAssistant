@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using System.IO;
 
 // modes: 
-// diff:    Compare [new-original] and [old-original], export different entires or entries missing in [old-translation]
+// diff:    Compare [new-original] and [old-original], export different entires or entries missing in [old-original]
 //          in a [diff-file]. If [output-path] is specified, export the translation organized in the same way as the 
 //          [new-original] with entries in the diff file remaining un-translated.
 // convert: Convert each input file in [input-path] to a new format. If [output-format] is not specified, [input-format] 
@@ -30,9 +30,9 @@ using System.IO;
 // csv-safe-gbk:The csv-safe format encoding in gbk.
 // 
 // flags:
-// --check-special-characters:  Perform checks on special characters in the coresponding entries in [new-original]
-//                              and the translation to be exported. Discard the translation if check failed. Record
-//                              the results in a [check-file] if path is specified.
+// --check-special-characters:  Can only work in [merge] mode for now! Perform checks on special characters in the coresponding entries
+//                              in [new-original] and the translation to be exported. Discard the translation if check failed. 
+//                              Record the results in a [check-file] if path is specified.
 //
 
 
@@ -96,30 +96,28 @@ namespace ParadoxLocalisationKit
 
         static bool DoDiff(Dictionary<string, string> options)
         {
-            string inputPath = null;
             string outputPath = null;
             string newOriginPath = null;
             string oldOriginPath = null;
             string oldTranslationPath = null;
 
-            string inputFormat = null;
             string outputFormat = null;
             string newOriginFormat = null;
             string oldOriginFormat = null;
             string oldTranslationFormat = null;
 
-            if (!options.TryGetValue("input-path", out inputPath))
-                throw new ArgumentException("Missing input-path.");
-            if (!options.TryGetValue("input-format", out inputFormat))
-                throw new ArgumentException("Missing input-format.");
+            string diffPath = null;
+
             if (!options.TryGetValue("new-original-path", out newOriginPath))
                 throw new ArgumentException("Missing new-original-path.");
             if (!options.TryGetValue("new-original-format", out newOriginFormat))
                 throw new ArgumentException("Missing new-original-format.");
+
             if (!options.TryGetValue("old-original-path", out oldOriginPath))
                 throw new ArgumentException("Missing old-original-path.");
             if (!options.TryGetValue("old-original-format", out oldOriginFormat))
                 throw new ArgumentException("Missing old-original-format.");
+
             if (!options.TryGetValue("old-translation-path", out oldTranslationPath))
                 throw new ArgumentException("Missing old-translation-path.");
             if (!options.TryGetValue("old-translation-format", out oldTranslationFormat))
@@ -128,13 +126,42 @@ namespace ParadoxLocalisationKit
             options.TryGetValue("output-path", out outputPath);
             options.TryGetValue("output-format", out outputFormat);
 
+            if (!options.TryGetValue("diff-file-path", out diffPath))
+                throw new ArgumentException("Missing diff-file-path.");
+
+            // all dummy english for now..
+            SingleLanguageDB oldOrigin = new SingleLanguageDB("english");
+            SingleLanguageDB newOrigin = new SingleLanguageDB("english");
+            SingleLanguageDB oldTranslation = new SingleLanguageDB("english");
+
+            Localization.BatchImportToSingleLanguageDB(newOrigin, newOriginPath, newOriginFormat);
+            Localization.BatchImportToSingleLanguageDB(oldOrigin, oldOriginPath, oldOriginFormat);  
+            Localization.BatchImportToSingleLanguageDB(oldTranslation, oldTranslationPath, oldTranslationFormat);
 
 
+            var diff = Localization.Compare(oldOrigin, newOrigin, false);
+            YMLFile diffyml = new YMLFile();
+            diffyml.AppendLine(null, -1, "l_english:", null);
+            foreach (var entry in diff)
+            {
+                string chitext = oldTranslation.LookupText(entry.Item1, entry.Item2);
+                diffyml.AppendLine(null, -1, "# new: " + entry.Item3, null);
+                diffyml.AppendLine(null, -1, "# old: " + entry.Item4, null);
 
+                if (chitext != null)
+                    diffyml.AppendLine(entry.Item1, entry.Item2, chitext, null);
+                else
+                    diffyml.AppendLine(entry.Item1, entry.Item2, entry.Item3, null);
 
+                // Remove trnaslation, prepare for export
+                if (chitext != null)
+                    oldTranslation.Remove(entry.Item1, entry.Item2);
+            }
 
+            diffyml.Write(diffPath);
 
-
+            if (outputPath != null && outputFormat != null)
+                return Localization.BatchExportLocalization(oldTranslation, newOriginPath, newOriginFormat, null, outputPath, outputFormat);
             return true;
         }
         
@@ -151,6 +178,7 @@ namespace ParadoxLocalisationKit
                 throw new ArgumentException("Missing input-path.");
             if (!options.TryGetValue("input-format", out inputFormat))
                 throw new ArgumentException("Missing input-format.");
+
             if (!options.TryGetValue("output-path", out outputPath))
                 throw new ArgumentException("Missing output-path.");
             if (!options.TryGetValue("output-format", out outputFormat))
@@ -169,7 +197,108 @@ namespace ParadoxLocalisationKit
 
         static bool DoMerge(Dictionary<string, string> options)
         {
-            return true;
+            string inputPath = null;
+            string outputPath = null;
+            string newOriginPath = null;
+            string oldOriginPath = null;
+            string oldTranslationPath = null;
+
+            string inputFormat = null;
+            string outputFormat = null;
+            string newOriginFormat = null;
+            string oldOriginFormat = null;
+            string oldTranslationFormat = null;
+
+            if (!options.TryGetValue("input-path", out inputPath))
+                throw new ArgumentException("Missing input-path.");
+            if (!options.TryGetValue("input-format", out inputFormat))
+                throw new ArgumentException("Missing input-format.");
+
+            if (!options.TryGetValue("output-path", out outputPath))
+                throw new ArgumentException("Missing output-path.");
+            if (!options.TryGetValue("output-format", out outputFormat))
+                throw new ArgumentException("Missing output-format.");
+
+            if (!options.TryGetValue("new-original-path", out newOriginPath))
+                throw new ArgumentException("Missing new-original-path.");
+            if (!options.TryGetValue("new-original-format", out newOriginFormat))
+                throw new ArgumentException("Missing new-original-format.");
+        
+
+            options.TryGetValue("old-original-path", out oldOriginPath);
+            options.TryGetValue("old-original-format", out oldOriginFormat);
+
+            options.TryGetValue("old-translation-path", out oldTranslationPath);
+            options.TryGetValue("old-translation-format", out oldTranslationFormat);
+
+
+            // all dummy english for now..
+            SingleLanguageDB input = new SingleLanguageDB("english");
+            SingleLanguageDB newOrigin = new SingleLanguageDB("english");
+            Localization.BatchImportToSingleLanguageDB(input, inputPath, inputFormat);
+            Localization.BatchImportToSingleLanguageDB(newOrigin, newOriginPath, newOriginFormat);
+
+
+            // optional
+            SingleLanguageDB oldOrigin = null;
+            SingleLanguageDB oldTranslation = null;
+            if (oldOriginPath != null && oldOriginFormat != null)
+            {
+                oldOrigin = new SingleLanguageDB("english");
+                Localization.BatchImportToSingleLanguageDB(oldOrigin, oldOriginPath, oldOriginFormat);
+            }
+            if (oldTranslationPath != null && oldTranslationFormat != null)
+            {
+                oldTranslation = new SingleLanguageDB("english");
+                Localization.BatchImportToSingleLanguageDB(oldTranslation, oldTranslationPath, oldTranslationFormat);
+            }
+
+            // 1. Merge in old translation
+            if (oldTranslation != null)
+            {
+                Localization.MergeIn(input, oldTranslation, LocalizationDB.ImportMode.kIgnore);
+            }
+            
+            // 2. Remove diff
+            var diff = Localization.Compare(oldOrigin, newOrigin, false);
+            foreach (var entry in diff)
+            {
+                string chitext = input.LookupText(entry.Item1, entry.Item2);   
+                if (chitext != null)
+                    input.Remove(entry.Item1, entry.Item2);
+            }
+
+            // 3. Checks
+            if (options.ContainsKey("check-special-characters"))
+            {
+                var check = Localization.CheckTranslation(newOrigin, input);
+                YMLFile checkyml = new YMLFile();
+                checkyml.AppendLine(null, -1, "l_english:", null);
+                foreach (var entry in check)
+                {
+                    if (entry.Item3 != null)
+                    {
+                        checkyml.AppendLine(null, -1, "# Check Fail, origin: " + entry.Item3, null);
+                        checkyml.AppendLine(entry.Item1, entry.Item2, entry.Item4, null);
+                    }
+                    // Remove trnaslation, prepare for export
+                    oldTranslation.Remove(entry.Item1, entry.Item2);
+                }
+                var missing = Localization.GetMissingEntries(newOrigin, input, false);
+
+                foreach (var entry in missing)
+                {
+                    checkyml.AppendLine(null, -1, "# Missing.", null);
+                    checkyml.AppendLine(entry.Item1, entry.Item2, entry.Item4, null);
+                }
+
+                string checkPath = null;
+                if (options.TryGetValue("check-file-path", out checkPath))
+                    checkyml.Write(checkPath);
+            }
+            
+            // 4. Export the merged translation
+            return Localization.BatchExportLocalization(input, newOriginPath, newOriginFormat, null, outputPath, outputFormat);
         }
 
         static void Main(string[] args)

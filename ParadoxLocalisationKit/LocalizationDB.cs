@@ -85,11 +85,13 @@ namespace ParadoxLocalisationKit
         {
             if (!data.ContainsKey(tag))
                 return;
-            if (!data[tag].ContainsKey(ver))
+
+            if (ver != -1 && !data[tag].ContainsKey(ver))
                 return;
 
-            data[tag].Remove(ver);
-            if (data[tag].Count == 0)
+            if (ver != -1)
+                data[tag].Remove(ver);
+            if (ver == -1 || data[tag].Count == 0)
                 data.Remove(tag);
         }
 
