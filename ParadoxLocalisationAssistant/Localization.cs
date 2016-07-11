@@ -22,12 +22,12 @@ namespace ParadoxLocalisationAssistant
                 case "pml": return new YMLFile();
                 case "csv": return new CSVFile();
                 case "csv-gbk": return new CSVGBKFile();
-                case "pml-safe":    
-                case "eu4pml":
-                case "eu4pml-sp":   
-                case "eu4pml-safe":                              
-                case "csv-safe":    
-                case "csv-safe-gbk":
+                case "csv-safe": return new CSVSafeFile();
+                case "csv-safe-gbk": return new CSVSafeGBKFile();
+                case "pml-safe": return new YMLSafeFile();
+                case "eu4pml": return new YMLEu4File();
+                case "eu4pml-sp": return new YMLEu4SPFile();
+                case "eu4pml-safe": return new YMLEu4SafeFile();
                 default: return null;
             }
         }
@@ -41,15 +41,15 @@ namespace ParadoxLocalisationAssistant
         {
             switch (fileFormat)
             {
-                case "pml": 
-                case "csv": 
-                case "csv-gbk": return true;
+                case "pml":
+                case "csv":
+                case "csv-gbk": 
                 case "pml-safe":
                 case "eu4pml":
                 case "eu4pml-sp":
                 case "eu4pml-safe":
                 case "csv-safe":
-                case "csv-safe-gbk":
+                case "csv-safe-gbk": return true;
                 default: return false;
             }
         }
@@ -63,13 +63,13 @@ namespace ParadoxLocalisationAssistant
         /// <param name="overridePattern"></param>
         /// <param name="mode"></param>
         /// <returns></returns>
-        static public int BatchImportToSingleLanguageDB(SingleLanguageDB db, string path, string fileFormat, 
+        static public int BatchImportToSingleLanguageDB(SingleLanguageDB db, string path, string fileFormat,
             string overridePattern = null, LocalizationDB.ImportMode mode = LocalizationDB.ImportMode.kReplace)
         {
             if (!Directory.Exists(path))
                 return 0;
 
-            string pattern = overridePattern != null ? overridePattern: GetLocalizationFileInstance(fileFormat).DefaultNamePattern();
+            string pattern = overridePattern != null ? overridePattern : GetLocalizationFileInstance(fileFormat).DefaultNamePattern();
             int totalCount = 0;
             foreach (var filename in Directory.EnumerateFiles(path, pattern))
             {
@@ -78,7 +78,7 @@ namespace ParadoxLocalisationAssistant
                 totalCount += ImportToSingleLanguageDBFromFile(db, file, mode);
             }
             return totalCount;
-        }   
+        }
 
         /// <summary>
         /// 
@@ -87,7 +87,7 @@ namespace ParadoxLocalisationAssistant
         /// <param name="input"></param>
         /// <param name="mode"></param>
         /// <returns></returns>
-        static public int ImportToSingleLanguageDBFromFile(SingleLanguageDB db, ILocalizationFile input, 
+        static public int ImportToSingleLanguageDBFromFile(SingleLanguageDB db, ILocalizationFile input,
             LocalizationDB.ImportMode mode = LocalizationDB.ImportMode.kReplace)
         {
             // for now, all input file will be marked as english...
@@ -172,11 +172,11 @@ namespace ParadoxLocalisationAssistant
         /// <param name="outPath"></param>
         /// <param name="outFileFormat"></param>
         /// <returns></returns>
-        static public bool BatchExportLocalization(SingleLanguageDB db, 
+        static public bool BatchExportLocalization(SingleLanguageDB db,
             string refPath, string refFileFormat, string overrideRefPattern,
             string outPath, string outFileFormat)
         {
-            if (!Directory.Exists(refPath) )
+            if (!Directory.Exists(refPath))
                 return false;
 
             string refpattern = overrideRefPattern != null ? overrideRefPattern : GetLocalizationFileInstance(refFileFormat).DefaultNamePattern();
@@ -193,7 +193,7 @@ namespace ParadoxLocalisationAssistant
 
                 string newName = Path.GetFileNameWithoutExtension(filename);
                 Directory.CreateDirectory(outPath);
-                outfile.Write(outPath + "\\" + newName + "." + outfile.DefaultExtension());              
+                outfile.Write(outPath + "\\" + newName + "." + outfile.DefaultExtension());
             }
             return true;
         }
@@ -493,7 +493,7 @@ namespace ParadoxLocalisationAssistant
             }
             return check;
         }
-        
+
         /// <summary>
         /// 
         /// </summary>
@@ -515,5 +515,284 @@ namespace ParadoxLocalisationAssistant
                 translation.Import(it.Item1, it.Item2, it.Item3, LocalizationDB.ImportMode.kReplace);
         }
 
+
+        static public string UnicodeToDummyLatin1(string input, int encoding)
+        {
+            if (encoding == 1252)
+                return input;
+
+            // TODO: do not go througth safe string...
+            return ToUnsafeString(Encoding.GetEncoding(1252).GetString(Encoding.GetEncoding(encoding).GetBytes(ToSafeString(input))));
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="input"></param>
+        /// <param name="encoding"></param>
+        /// <returns></returns>
+        static public string DummyLatin1ToUnicode(string input, int encoding)
+        {
+            if (encoding == 1252)
+                return input;
+            string result = "";
+
+            var bytes = Encoding.GetEncoding(1252).GetBytes(input);
+
+            for (int i = 0; i < bytes.Length; ++i)
+            {
+                if (bytes[i] == 0xa3)
+                {
+                    // Assuming the file is valid, characters followed by a3 should all be Latin1 characters.
+                    // So it's fine to do this.
+                    if (i == bytes.Length - 1)
+                    {
+                        result += Encoding.GetEncoding(1252).GetString(bytes, i, 1);
+                    }
+                    else
+                    {
+                        // byte is unsinged ...
+                        if (bytes[i + 1] < 128)
+                        {
+                            result += Encoding.GetEncoding(1252).GetString(bytes, i, 1);
+                        }
+                        else
+                        {
+                            // Treat as normal character
+                            string resultChar = null;
+                            try
+                            {
+                                resultChar = Encoding.GetEncoding(encoding).GetString(bytes, i, 2);
+                            }
+                            catch (Exception) { }
+                            if (resultChar != null)
+                            {
+                                result += resultChar;
+                                ++i;
+                            }
+                            else
+                            {
+                                result += Encoding.GetEncoding(1252).GetString(bytes, i, 1);
+                            }
+                        }
+                    }
+                }
+                else if (bytes[i] == 0xa4)
+                {
+                    result += Encoding.GetEncoding(1252).GetString(bytes, i, 1);
+                }
+                else if (bytes[i] == 0xa7)
+                {
+                    // Always assume a7 is not part of chinese character
+                    result += Encoding.GetEncoding(1252).GetString(bytes, i, 1);
+                }
+                else
+                {
+                    if (i == bytes.Length - 1)
+                    {
+                        result += Encoding.GetEncoding(1252).GetString(bytes, i, 1);
+                    }
+                    else
+                    {
+                        string resultChar = null;
+                        try
+                        {
+                            resultChar = Encoding.GetEncoding(encoding).GetString(bytes, i, 2);
+                        }
+                        catch (Exception) { }
+                        if (resultChar != null)
+                        {
+                            if (resultChar.Length == 1)
+                            {
+                                result += resultChar;
+                                ++i;
+                            }
+                            else
+                            {
+                                result += Encoding.GetEncoding(1252).GetString(bytes, i, 1);
+                            }
+                        }
+                        else
+                        {
+                            result += Encoding.GetEncoding(1252).GetString(bytes, i, 1);
+                        }
+                    }
+                }
+            }
+            return result;
+        }
+
+
+        /// <summary>
+        /// Convert unsafe UNICODE string to safe ones.
+        /// </summary>
+        /// <param name="input">UNICODE string to convert.</param>
+        /// <returns></returns>
+        static public string ToSafeString(string input)
+        {
+            StringBuilder safeString = new StringBuilder("");
+
+            for (int i = 0; i < input.Count(); ++i)
+            {
+                if (input[i] == '£')
+                {
+                    safeString.Append("<A3-");
+                    while (input[++i] != ' ' && input[++i] != '£')
+                    {
+                        if (input[i] == 0)
+                            break;
+                        safeString.Append(input[i]);
+                    }
+                    if (input[i] == '£')
+                        safeString.Append("-A3");
+                    safeString.Append(">");
+                    continue;
+                }
+                if (input[i] == '¤')
+                {
+                    safeString.Append("<A4>");
+                    continue;
+                }
+                if (input[i] == '§')
+                {
+                    safeString.Append("<A7-");
+                    safeString.Append(input[i + 1]);
+                    safeString.Append(">");
+                    ++i;
+                    continue;
+                }
+                safeString.Append(input[i]);
+            }
+
+
+            var Regex = new Regex("\\$([\\w\\d\\-+/%|=]+)\\$");
+            string replacement = "<VAR-$1>";
+
+            return Regex.Replace(safeString.ToString(), replacement);
+
+        }
+
+
+        /// <summary>
+        /// Convert safe UNICODE string to unsafe ones.
+        /// </summary>
+        /// <param name="input">UNICODE string to convert.</param>
+        /// <returns></returns>
+        static public string ToUnsafeString(string input)
+        {
+            StringBuilder unsafeString = new StringBuilder("");
+
+            for (int i = 0; i < input.Count(); ++i)
+            {
+                if (input[i] == '<' && i + 3 < input.Count() && input[i + 1] == 'A' && input[i + 2] == '3' && input[i + 3] == '-')
+                {
+                    StringBuilder buf = new StringBuilder("£");
+                    int j = 4;
+                    bool ended = false;
+                    while (input[i + j] != '>')
+                    {
+                        if (input[i + j] == 0)
+                            break;
+                        if (input[i + j] == '-' && i + j + 3 < input.Count())
+                        {
+                            if (input[i + j + 1] == 'A' && input[i + j + 2] == '3' && input[i + j + 3] == '>')
+                            {
+                                buf.Append("£");
+                                ended = true;
+                                j += 3;
+                                break;
+                            }
+                        }
+                        buf.Append(input[i + j]);
+                        ++j;
+                    }
+                    if (input[i + j] == '>' && !ended)
+                    {
+                        buf.Append(' ');
+                        unsafeString.Append(buf.ToString());
+                        i += j;
+                        continue;
+                    }
+                }
+                else if (input[i] == '<' && i + 3 < input.Count() && input[i + 1] == 'A' && input[i + 2] == '4')
+                {
+                    if (input[i + 3] == '>')
+                    {
+                        unsafeString.Append('¤');
+                        i += 3;
+                        continue;
+                    }
+                }
+                else if (input[i] == '<' && i + 5 < input.Count() && input[i + 1] == 'A' && input[i + 2] == '7' && input[i + 3] == '-')
+                {
+                    if (input[i + 4] != 0 && input[i + 5] == '>')
+                    {
+                        unsafeString.Append('§');
+                        unsafeString.Append(input[i + 4]);
+                        i += 5;
+                        continue;
+                    }
+                }
+                unsafeString.Append(input[i]);
+
+            }
+
+            var Regex = new Regex("<VAR-([\\w\\d\\-+/%|=]+)>");
+            string replacement = "$$$1$$";
+            return Regex.Replace(unsafeString.ToString(), replacement);
+        }
+
+
+        static public string EscapeQuote(string input)
+        {
+            StringBuilder result = new StringBuilder("");
+            for (int i = 0; i < input.Count(); ++i)
+            {
+                if (input[i] == '\"')
+                {
+                    result.Append("\\\"");
+                }
+                else if (input[i] == '\\')
+                {
+                    result.Append("\\\\");
+                }
+                else
+                {
+                    result.Append(input[i]);
+                }
+            }
+            return result.ToString();
+        }
+
+        static public string UnescapeQuote(string input)
+        {
+            StringBuilder result = new StringBuilder("");
+            for (int i = 0; i < input.Count(); ++i)
+            {
+                if (input[i] == '\\' && i != input.Count() - 1)
+                {
+                    if (input[i + 1] == '\\')
+                    {
+                        result.Append("\\");
+                        ++i;
+                    }
+                    else if (input[i + 1] == '\"')
+                    {
+                        result.Append("\"");
+                        ++i;
+                    }
+                    else
+                    {
+                        result.Append(input[i]);
+                    }
+                }
+                else
+                {
+                    result.Append(input[i]);
+                }
+            }
+
+            return result.ToString();
+        }
     }
 }

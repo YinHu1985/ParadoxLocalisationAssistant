@@ -8,11 +8,24 @@ using System.Text.RegularExpressions;
 
 namespace ParadoxLocalisationAssistant
 {
-    class CSVLine
+    public class CSVLine
     {
         public string tag;
         public string data;
         public string rest;
+    }  
+
+    public class CSVSafeFile : CSVFile, ILocalizationFile
+    {
+        protected override string ProcessInput(string input)
+        {
+            return Localization.ToUnsafeString(Localization.DummyLatin1ToUnicode(input, encoding));
+        }
+
+        protected override string ProcessOutput(string output)
+        {
+            return Localization.ToSafeString(Localization.UnicodeToDummyLatin1(output, encoding));
+        }
     }
 
     public class CSVGBKFile : CSVFile, ILocalizationFile
@@ -20,103 +33,32 @@ namespace ParadoxLocalisationAssistant
         protected override int encoding { get { return 936; } }
     }
 
-    public class CSVFile : ILocalizationFile
+    public class CSVSafeGBKFile : CSVSafeFile, ILocalizationFile
     {
-        List<CSVLine> lines = new List<CSVLine>();
+        protected override int encoding { get { return 936; } }
+    }
+
+    public class CSVFile : CSVFileBase, ILocalizationFile
+    {
+        protected override int encoding { get { return 1252; } }
+
+        protected override string ProcessInput(string input)
+        {
+            return Localization.DummyLatin1ToUnicode(input, encoding);
+        }
+
+        protected override string ProcessOutput(string output)
+        {
+            return Localization.UnicodeToDummyLatin1(output, encoding);
+        }
+
+    }
+
+    public abstract class CSVFileBase : ILocalizationFile
+    {
+        protected List<CSVLine> lines = new List<CSVLine>();
 
         protected virtual int encoding { get { return 1252; } }
-
-
-        string ProcessEncoding(string input, int encoding)
-        {
-            if (encoding == 1252)
-                return input;
-            string result = "";
-
-            var bytes = Encoding.GetEncoding(1252).GetBytes(input);
-
-            for (int i = 0; i < bytes.Length; ++ i)
-            {
-                if (bytes[i] == 0xa3)
-                {
-                    // Assuming the file is valid, characters followed by a3 should all be Latin1 characters.
-                    // So it's fine to do this.
-                    if (i == bytes.Length - 1)
-                    {
-                        result += Encoding.GetEncoding(1252).GetString(bytes, i, 1);
-                    }
-                    else
-                    {
-                        // byte is unsinged ...
-                        if (bytes[i + 1] < 128)
-                        {
-                            result += Encoding.GetEncoding(1252).GetString(bytes, i, 1);
-                        }
-                        else
-                        {
-                            // Treat as normal character
-                            string resultChar = null;
-                            try
-                            {
-                                resultChar = Encoding.GetEncoding(encoding).GetString(bytes, i, 2);
-                            }
-                            catch (Exception) { }
-                            if (resultChar != null)
-                            {
-                                result += resultChar;
-                                ++i;
-                            }
-                            else
-                            {
-                                result += Encoding.GetEncoding(1252).GetString(bytes, i, 1);
-                            }
-                        }
-                    }
-                }
-                else if (bytes[i] == 0xa4)
-                {
-                    result += Encoding.GetEncoding(1252).GetString(bytes, i, 1);
-                }
-                else if (bytes[i] == 0xa7)
-                {
-                    // Always assume a7 is not part of chinese character
-                    result += Encoding.GetEncoding(1252).GetString(bytes, i, 1);
-                }
-                else
-                {
-                    if (i == bytes.Length - 1)
-                    {
-                        result += Encoding.GetEncoding(1252).GetString(bytes, i, 1);
-                    }
-                    else
-                    {
-                        string resultChar = null;
-                        try
-                        {
-                            resultChar = Encoding.GetEncoding(encoding).GetString(bytes, i, 2);
-                        }
-                        catch (Exception) { }
-                        if (resultChar != null)
-                        {
-                            if (resultChar.Length == 1)
-                            {
-                                result += resultChar;
-                                ++i;
-                            }
-                            else
-                            {
-                                result += Encoding.GetEncoding(1252).GetString(bytes, i, 1);
-                            }
-                        }
-                        else
-                        {
-                            result += Encoding.GetEncoding(1252).GetString(bytes, i, 1);
-                        }
-                    }
-                }
-            }
-            return result;
-        }
 
         public bool CanWrite()
         {
@@ -149,7 +91,7 @@ namespace ParadoxLocalisationAssistant
             return "csv";
         }
 
-        public void Read(string path)
+        public virtual void Read(string path)
         {
             // first read as Latin1
             var raw = File.ReadLines(path, Encoding.GetEncoding(1252));
@@ -162,8 +104,8 @@ namespace ParadoxLocalisationAssistant
                 if (m.Success)
                 {     
                     newline.tag = m.Groups["tag"].Value;
-                    newline.data = ProcessEncoding(m.Groups["data"].Value, encoding);
-                    newline.rest = ProcessEncoding(m.Groups["rest"].Value, encoding);
+                    newline.data = ProcessInput(m.Groups["data"].Value);
+                    newline.rest = ProcessInput(m.Groups["rest"].Value);
                 }
                 else
                 {
@@ -173,20 +115,24 @@ namespace ParadoxLocalisationAssistant
             }
         }
 
-        public void Write(string path)
+        public virtual void Write(string path)
         {
             string output = "";
 
             foreach (var line in lines)
             {
                 if (line.tag != "")
-                    output += line.tag + ";" + line.data + ";" + line.rest + "\n";
+                    output += line.tag + ";" + ProcessOutput(line.data) + ";" + line.rest + "\n";
                 else
-                    output += line.data + "\n";
+                    output += ProcessOutput(line.data) + "\n";
 
             }
-            File.WriteAllText(path, output, Encoding.GetEncoding(encoding));
+            File.WriteAllText(path, output, Encoding.GetEncoding(1252));
         }
+
+        protected abstract string ProcessInput(string input);
+
+        protected abstract string ProcessOutput(string output);
 
         public int CountLines()
         {

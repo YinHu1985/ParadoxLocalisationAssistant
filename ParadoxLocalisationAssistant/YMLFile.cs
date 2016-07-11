@@ -16,7 +16,72 @@ namespace ParadoxLocalisationAssistant
         public string rest;
     }
 
-    public class YMLFile : ILocalizationFile
+    public class YMLEu4SafeFile : YMLFileBase, ILocalizationFile
+    {
+        protected override string ProcessInput(string input)
+        {
+            return Localization.ToUnsafeString(Localization.UnescapeQuote(input));
+        }
+
+        protected override string ProcessOutput(string output)
+        {
+            return Localization.ToSafeString(Localization.EscapeQuote(output));
+        }
+    }
+
+    public class YMLEu4SPFile : YMLFileBase, ILocalizationFile
+    {
+        protected override string ProcessInput(string input)
+        {
+            return Localization.DummyLatin1ToUnicode(Localization.UnescapeQuote(input), 936);
+        }
+
+        protected override string ProcessOutput(string output)
+        {
+            return Localization.EscapeQuote(Localization.UnicodeToDummyLatin1(output, 936));
+        }
+    }
+
+    public class YMLEu4File : YMLFileBase, ILocalizationFile
+    {
+        protected override string ProcessInput(string input)
+        {
+            return Localization.UnescapeQuote(input);
+        }
+
+        protected override string ProcessOutput(string output)
+        {
+            return Localization.EscapeQuote(output);
+        }
+    }
+
+    public class YMLSafeFile : YMLFileBase, ILocalizationFile
+    {
+        protected override string ProcessInput(string input)
+        {
+            return Localization.ToUnsafeString(input);
+        }
+
+        protected override string ProcessOutput(string output)
+        {
+            return Localization.ToSafeString(output);
+        }
+    }
+
+    public class YMLFile : YMLFileBase, ILocalizationFile
+    {
+        protected override string ProcessInput(string input)
+        {
+            return input;
+        }
+
+        protected override string ProcessOutput(string output)
+        {
+            return output;
+        }
+    }
+
+    public abstract class YMLFileBase : ILocalizationFile
     {
         List<YMLLine> lines = new List<YMLLine>();
 
@@ -105,7 +170,7 @@ namespace ParadoxLocalisationAssistant
                     {
                         newline.rest = m.Groups["rest"].Value;
                     }
-
+                    newline.data = ProcessInput(newline.data);
                 }
                 else
                 {
@@ -122,14 +187,18 @@ namespace ParadoxLocalisationAssistant
             foreach (var line in lines)
             {
                 if (!string.IsNullOrEmpty(line.tag))
-                    output += " " + line.tag + ":" + (line.ver == -1 ? "" : line.ver.ToString()) + " \"" + line.data + "\"" + (line.rest != null?line.rest :"") + "\n";
+                    output += " " + line.tag + ":" + (line.ver == -1 ? "" : line.ver.ToString()) + " \"" + ProcessOutput(line.data) + "\"" + (line.rest != null?line.rest :"") + "\n";
                 else
-                    output += line.data + "\n";
+                    output += ProcessOutput(line.data) + "\n";
 
             }
             // ignore encoding
             File.WriteAllText(path, output, Encoding.GetEncoding(65001));
         }
+
+        protected abstract string ProcessInput(string input);
+
+        protected abstract string ProcessOutput(string output);
 
         public int CountLines()
         {
