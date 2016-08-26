@@ -171,10 +171,11 @@ namespace ParadoxLocalisationAssistant
         /// <param name="overrideRefPattern"></param>
         /// <param name="outPath"></param>
         /// <param name="outFileFormat"></param>
+        /// <param name="splitLine"></param>
         /// <returns></returns>
         static public bool BatchExportLocalization(SingleLanguageDB db,
             string refPath, string refFileFormat, string overrideRefPattern,
-            string outPath, string outFileFormat)
+            string outPath, string outFileFormat, int splitLine = 0)
         {
             if (!Directory.Exists(refPath))
                 return false;
@@ -190,10 +191,54 @@ namespace ParadoxLocalisationAssistant
                     return false;
                 if (!ExportLocalization(db, reffile, outfile))
                     return false;
-
                 string newName = Path.GetFileNameWithoutExtension(filename);
                 Directory.CreateDirectory(outPath);
-                outfile.Write(outPath + "\\" + newName + "." + outfile.DefaultExtension());
+                if (splitLine <= 0)
+                {       
+                    outfile.Write(outPath + "\\" + newName + "." + outfile.DefaultExtension());
+                }
+                else
+                {
+                    int count = outfile.CountLines();
+                    if (count > 0)
+                    {
+                        ILocalizationFile splitFile = GetLocalizationFileInstance(outFileFormat);
+                        splitFile.GenHeader("english");
+                        int contentCount = 0;
+                        int fileCount = 1;
+                        for (int i = outfile.HeaderLines(); i < count; ++i)
+                        {
+                            if (contentCount >= splitLine)
+                            {
+                                splitFile.Write(outPath + "\\" + newName + "-" + fileCount.ToString() + "." + splitFile.DefaultExtension());
+                                fileCount++;
+                                contentCount = 0;
+                                if (i != count -1)
+                                {
+                                    splitFile = GetLocalizationFileInstance(outFileFormat);
+                                    splitFile.GenHeader("english");
+                                }
+                            }
+                            if (outfile.IsLineLocalizationData(i))
+                            {
+                                string tag = "";
+                                int ver = 0;
+                                string data = "";
+                                string rest = "";
+                                outfile.GetData(i, ref tag, ref ver, ref data, ref rest);
+                                splitFile.AppendLine(tag, ver, data, rest);
+                                contentCount++;
+                            }
+                            else
+                            {
+                                string data = "";
+                                outfile.GetNonLocalizationData(i, ref data);
+                                splitFile.AppendLine(null, 0, data, null);
+                            }
+                        }
+                        splitFile.Write(outPath + "\\" + newName + "-" + fileCount.ToString() + "." + splitFile.DefaultExtension());
+                    }
+                }
             }
             return true;
         }

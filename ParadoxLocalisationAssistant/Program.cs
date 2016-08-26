@@ -84,7 +84,7 @@ namespace ParadoxLocalisationAssistant
                     }
                     else if (flagList.ContainsKey(args[i]))
                     {
-                        options[optionList[args[i]]] = "1";
+                        options[flagList[args[i]]] = "1";
                     }
                     else
                         throw new ArgumentException(args[i]);             
@@ -174,6 +174,9 @@ namespace ParadoxLocalisationAssistant
             string inputFormat = null;
             string outputFormat = null;
 
+            int splitLine = 0;
+            string strSplitLine = null;
+
             if (!options.TryGetValue("input-path", out inputPath))
                 throw new ArgumentException("Missing input-path.");
             if (!options.TryGetValue("input-format", out inputFormat))
@@ -184,14 +187,25 @@ namespace ParadoxLocalisationAssistant
             if (!options.TryGetValue("output-format", out outputFormat))
                 throw new ArgumentException("Missing output-format.");
 
-            return Localization.BatchExportLocalization(null, inputPath, inputFormat, null, outputPath, outputFormat);
+            if (options.TryGetValue("split-lines", out strSplitLine))
+            {
+                splitLine = Convert.ToInt32(strSplitLine);
+            };
+
+            return Localization.BatchExportLocalization(null, inputPath, inputFormat, null, outputPath, outputFormat, splitLine);
         }
 
         static bool DoSplit(Dictionary<string, string> options)
         {
             if (!options.ContainsKey("split-lines"))
                 throw new ArgumentException("split-lines is not set.");
-            
+            string inputFormat = null;
+            if (!options.TryGetValue("input-format", out inputFormat))
+                throw new ArgumentException("Missing input-format.");
+            if (!options.ContainsKey("output-format"))
+            {
+                options["output-format"] = inputFormat;
+            }
             return DoConvert(options);
         }
 
@@ -207,7 +221,7 @@ namespace ParadoxLocalisationAssistant
             string outputFormat = null;
             string newOriginFormat = null;
             string oldOriginFormat = null;
-            string oldTranslationFormat = null;
+            string oldTranslationFormat = null; 
 
             if (!options.TryGetValue("input-path", out inputPath))
                 throw new ArgumentException("Missing input-path.");
@@ -224,13 +238,11 @@ namespace ParadoxLocalisationAssistant
             if (!options.TryGetValue("new-original-format", out newOriginFormat))
                 throw new ArgumentException("Missing new-original-format.");
         
-
             options.TryGetValue("old-original-path", out oldOriginPath);
             options.TryGetValue("old-original-format", out oldOriginFormat);
 
             options.TryGetValue("old-translation-path", out oldTranslationPath);
             options.TryGetValue("old-translation-format", out oldTranslationFormat);
-
 
             // all dummy english for now..
             SingleLanguageDB input = new SingleLanguageDB("english");
@@ -258,14 +270,17 @@ namespace ParadoxLocalisationAssistant
             {
                 Localization.MergeIn(input, oldTranslation, LocalizationDB.ImportMode.kIgnore);
             }
-            
+
             // 2. Remove diff
-            var diff = Localization.Compare(oldOrigin, newOrigin, false);
-            foreach (var entry in diff)
+            if (oldOrigin != null)
             {
-                string chitext = input.LookupText(entry.Item1, entry.Item2);   
-                if (chitext != null)
-                    input.Remove(entry.Item1, entry.Item2);
+                var diff = Localization.Compare(oldOrigin, newOrigin, false);
+                foreach (var entry in diff)
+                {
+                    string chitext = input.LookupText(entry.Item1, entry.Item2);
+                    if (chitext != null)
+                        input.Remove(entry.Item1, entry.Item2);
+                }
             }
 
             // 3. Checks
@@ -282,13 +297,13 @@ namespace ParadoxLocalisationAssistant
                         checkyml.AppendLine(entry.Item1, entry.Item2, entry.Item4, null);
                     }
                     // Remove trnaslation, prepare for export
-                    oldTranslation.Remove(entry.Item1, entry.Item2);
+                    input.Remove(entry.Item1, entry.Item2);
                 }
                 var missing = Localization.GetMissingEntries(newOrigin, input, false);
 
                 foreach (var entry in missing)
                 {
-                    checkyml.AppendLine(null, -1, "# Missing.", null);
+                    checkyml.AppendLine(null, -1, "# Missing. origin: " + entry.Item3, null);
                     checkyml.AppendLine(entry.Item1, entry.Item2, entry.Item4, null);
                 }
 
@@ -326,7 +341,7 @@ namespace ParadoxLocalisationAssistant
                     case "diff": DoDiff(options); break;
                     case "convert": DoConvert(options); break;
                     case "split": DoConvert(options); break;
-                    case "merge": DoDiff(options); break;
+                    case "merge": DoMerge(options); break;
                     default: throw new ArgumentException(string.Format("Invalid mode: {0}.", mode));
                 }
 
