@@ -286,6 +286,8 @@ namespace ParadoxLocalisationAssistant
             // 3. Checks
             if (options.ContainsKey("check-special-characters"))
             {
+                // check missing entries first as we will remove entries failed the check as well.
+                var missing = Localization.GetMissingEntries(newOrigin, input, false);
                 var check = Localization.CheckTranslation(newOrigin, input);
                 YMLFile checkyml = new YMLFile();
                 checkyml.AppendLine(null, -1, "l_english:", null);
@@ -299,8 +301,7 @@ namespace ParadoxLocalisationAssistant
                     // Remove trnaslation, prepare for export
                     input.Remove(entry.Item1, entry.Item2);
                 }
-                var missing = Localization.GetMissingEntries(newOrigin, input, false);
-
+               
                 foreach (var entry in missing)
                 {
                     checkyml.AppendLine(null, -1, "# Missing. origin: " + entry.Item3, null);
@@ -311,7 +312,7 @@ namespace ParadoxLocalisationAssistant
                 if (options.TryGetValue("check-file-path", out checkPath))
                     checkyml.Write(checkPath);
             }
-            
+
             // 4. Export the merged translation
             return Localization.BatchExportLocalization(input, newOriginPath, newOriginFormat, null, outputPath, outputFormat);
         }
