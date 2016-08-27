@@ -182,18 +182,17 @@ namespace ParadoxLocalisationAssistant
 
         public void Write(string path)
         {
-            string output = "";
-
+            StringBuilder output = new StringBuilder();
             foreach (var line in lines)
             {
                 if (!string.IsNullOrEmpty(line.tag))
-                    output += " " + line.tag + ":" + (line.ver == -1 ? "" : line.ver.ToString()) + " \"" + ProcessOutput(line.data) + "\"" + (line.rest != null?line.rest :"") + "\n";
+                    output.AppendFormat(" {0}:{1} \"{2}\"{3}\n", line.tag, (line.ver == -1 ? "" : line.ver.ToString()), ProcessOutput(line.data), (line.rest != null?line.rest :""));
                 else
-                    output += ProcessOutput(line.data) + "\n";
+                    output.AppendFormat("{0}\n", ProcessOutput(line.data));
 
             }
             // ignore encoding
-            File.WriteAllText(path, output, Encoding.GetEncoding(65001));
+            File.WriteAllText(path, output.ToString(), Encoding.GetEncoding(65001));
         }
 
         protected abstract string ProcessInput(string input);
