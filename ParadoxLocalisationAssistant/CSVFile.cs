@@ -117,17 +117,20 @@ namespace ParadoxLocalisationAssistant
 
         public virtual void Write(string path)
         {
-            string output = "";
+            StringBuilder output = new StringBuilder();
 
             foreach (var line in lines)
             {
                 if (line.tag != "")
-                    output += line.tag + ";" + ProcessOutput(line.data) + ";" + line.rest + "\n";
+                {
+                    output.AppendFormat("{0};{1};{2}\n", line.tag, ProcessOutput(line.data), line.rest);
+                }
                 else
-                    output += ProcessOutput(line.data) + "\n";
-
+                {
+                    output.AppendFormat("{0}\n", ProcessOutput(line.data));
+                }
             }
-            File.WriteAllText(path, output, Encoding.GetEncoding(1252));
+            File.WriteAllText(path, output.ToString(), Encoding.GetEncoding(1252));
         }
 
         protected abstract string ProcessInput(string input);
