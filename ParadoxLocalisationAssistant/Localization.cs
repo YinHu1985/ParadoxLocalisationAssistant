@@ -676,19 +676,20 @@ namespace ParadoxLocalisationAssistant
         static public string ToSafeString(string input)
         {
             StringBuilder safeString = new StringBuilder("");
-
+            if (input == null)
+                return "";
             for (int i = 0; i < input.Count(); ++i)
             {
                 if (input[i] == '£')
                 {
                     safeString.Append("<A3-");
-                    while (input[++i] != ' ' && input[++i] != '£')
+                    while (++i < input.Count() && input[i] != ' ' && input[i] != '£')
                     {
                         if (input[i] == 0)
                             break;
                         safeString.Append(input[i]);
                     }
-                    if (input[i] == '£')
+                    if (i < input.Count() && input[i] == '£')
                         safeString.Append("-A3");
                     safeString.Append(">");
                     continue;

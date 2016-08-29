@@ -289,7 +289,7 @@ namespace ParadoxLocalisationAssistant
                 // check missing entries first as we will remove entries failed the check as well.
                 var missing = Localization.GetMissingEntries(newOrigin, input, false);
                 var check = Localization.CheckTranslation(newOrigin, input);
-                YMLFile checkyml = new YMLFile();
+                YMLSafeFile checkyml = new YMLSafeFile();
                 checkyml.AppendLine(null, -1, "l_english:", null);
                 foreach (var entry in check)
                 {
