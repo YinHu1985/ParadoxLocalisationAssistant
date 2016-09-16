@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.IO;
+using System.Globalization;
 
 // modes: 
 // diff:    Compare [new-original] and [old-original], export different entires or entries missing in [old-original]
@@ -317,6 +318,83 @@ namespace ParadoxLocalisationAssistant
             return Localization.BatchExportLocalization(input, newOriginPath, newOriginFormat, null, outputPath, outputFormat);
         }
 
+        static bool DoRefine(Dictionary<string, string> options)
+        {
+            string outputPath = null;
+            string outputFormat = null;
+            string oldOriginPath = null;
+            string oldTranslationPath = null;
+            string oldOriginFormat = null;
+            string oldTranslationFormat = null;
+            
+
+            if (!options.TryGetValue("output-path", out outputPath))
+                throw new ArgumentException("Missing output-path.");
+            if (!options.TryGetValue("output-format", out outputFormat))
+                throw new ArgumentException("Missing output-format.");
+
+            if (!options.TryGetValue("old-original-path", out oldOriginPath))
+                throw new ArgumentException("Missing old-original-path.");
+            if (!options.TryGetValue("old-original-format", out oldOriginFormat))
+                throw new ArgumentException("Missing old-original-format.");
+
+            if (!options.TryGetValue("old-translation-path", out oldTranslationPath))
+                throw new ArgumentException("Missing old-translation-path.");
+            if (!options.TryGetValue("old-translation-format", out oldTranslationFormat))
+                throw new ArgumentException("Missing old-translation-format.");
+
+
+            // all dummy english for now..
+            SingleLanguageDB oldEng = new SingleLanguageDB("english");
+            SingleLanguageDB oldTranslate = new SingleLanguageDB("english");
+            Localization.BatchImportToSingleLanguageDB(oldEng, oldOriginPath, oldOriginFormat);
+            Localization.BatchImportToSingleLanguageDB(oldTranslate, oldTranslationPath, oldTranslationFormat);
+
+            Dictionary<string,string> dict1 = new Dictionary<string, string>();
+            Dictionary<string, string> dict2 = new Dictionary<string, string>();
+            foreach (var kv in oldEng)
+            {
+                string tag = kv.Key;
+                if ((tag.Length > 2 && tag[1] == '_') || tag.StartsWith("PROV"))
+                    continue;
+
+                string value = kv.Value.Last().Value;
+                
+                if (tag.ToLowerInvariant().Replace("_", "").Contains(value.ToLowerInvariant().Replace(" ", "")))
+                {
+                    dict1[tag] = value;
+                }
+                else
+                {
+                    TextInfo ti = CultureInfo.CurrentCulture.TextInfo;
+                    if (value == ti.ToTitleCase(value))
+                        dict2[tag] = value;
+                }
+            }
+
+            YMLSafeFile dict1file = new YMLSafeFile();
+            YMLSafeFile dict2file = new YMLSafeFile();
+            dict1file.AppendLine(null, -1, "l_english:", null);
+            dict2file.AppendLine(null, -1, "l_english:", null);
+
+
+            foreach (var entry in dict1)
+            {
+                dict1file.AppendLine(null, -1, "# Potential Term, origin: " + entry.Value, null);
+                string trans = oldTranslate.LookupLatestText(entry.Key)?.Item2;
+                dict1file.AppendLine(entry.Key, 0, trans != null? trans : entry.Value, null);
+            }
+            foreach (var entry in dict2)
+            {
+                dict2file.AppendLine(null, -1, "# Potential Term, origin: " + entry.Value, null);
+                string trans = oldTranslate.LookupLatestText(entry.Key)?.Item2;
+                dict2file.AppendLine(entry.Key, 0, trans != null ? trans : entry.Value, null);
+            }
+            dict1file.Write(outputPath + "\\dict1." + dict1file.DefaultExtension());
+            dict2file.Write(outputPath + "\\dict2." + dict1file.DefaultExtension());
+            return true;
+        }
+
         static void Main(string[] args)
         {
             try
@@ -343,6 +421,7 @@ namespace ParadoxLocalisationAssistant
                     case "convert": DoConvert(options); break;
                     case "split": DoConvert(options); break;
                     case "merge": DoMerge(options); break;
+                    case "refine": DoRefine(options); break;
                     default: throw new ArgumentException(string.Format("Invalid mode: {0}.", mode));
                 }
 
