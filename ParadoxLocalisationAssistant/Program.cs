@@ -321,7 +321,7 @@ namespace ParadoxLocalisationAssistant
                         oldeng = RemovedDiffEng[entry.Item1];
                     checkyml.AppendLine(null, -1, "# Missing. origin: " + entry.Item3, null);
                     if (oldeng != null)
-                        checkyml.AppendLine(null, -1, "       old origin: " + oldeng, null);
+                        checkyml.AppendLine(null, -1, "#      old origin: " + oldeng, null);
                     checkyml.AppendLine(entry.Item1, entry.Item2, chi != null ?chi:entry.Item4, null);
                 }
 
