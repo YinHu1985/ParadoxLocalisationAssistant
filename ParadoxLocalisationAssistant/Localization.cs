@@ -517,7 +517,7 @@ namespace ParadoxLocalisationAssistant
         /// <param name="translation"></param>
         /// <param name="removeRedundant"></param>
         /// <returns></returns>
-        static public List<Tuple<string, int, string, string>> CheckTranslation(SingleLanguageDB original, SingleLanguageDB translation)
+        static public List<Tuple<string, int, string, string>> CheckTranslation(SingleLanguageDB original, SingleLanguageDB translation, bool ignoreSame)
         {
             List<Tuple<string, int, string, string>> check = new List<Tuple<string, int, string, string>>();
             foreach (var entry in translation)
@@ -527,6 +527,8 @@ namespace ParadoxLocalisationAssistant
                     string engText = original.LookupText(entry.Key, kv.Key);
                     if (engText == null || engText == kv.Value)
                     {
+                        if (ignoreSame && engText == kv.Value)
+                            continue;
                         check.Add(new Tuple<string, int, string, string>(entry.Key, kv.Key, engText, kv.Value));
                     }
                     else if (!SameSpecialCharacters(engText, kv.Value))

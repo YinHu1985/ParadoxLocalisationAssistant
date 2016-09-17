@@ -63,7 +63,8 @@ namespace ParadoxLocalisationAssistant
 
         static Dictionary<string, string> flagList = new Dictionary<string, string>()
         {
-            { "-c", "check-special-characters" }, { "--check-special-characters", "check-special-characters" },          
+            { "-c", "check-special-characters" }, { "--check-special-characters", "check-special-characters" },
+            { "--ignore-potential-untranslated", "ignore-potential-untranslated" }
         };
 
         static Dictionary<string, string> ParseArgs(string[] args)
@@ -272,6 +273,7 @@ namespace ParadoxLocalisationAssistant
                 Localization.MergeIn(input, oldTranslation, LocalizationDB.ImportMode.kIgnore);
             }
 
+            Dictionary<string, string> RemovedDiff = new Dictionary<string, string>();
             // 2. Remove diff
             if (oldOrigin != null)
             {
@@ -280,16 +282,20 @@ namespace ParadoxLocalisationAssistant
                 {
                     string chitext = input.LookupText(entry.Item1, entry.Item2);
                     if (chitext != null)
+                    {
+                        RemovedDiff[entry.Item1] = chitext;
                         input.Remove(entry.Item1, entry.Item2);
+                    }
                 }
             }
 
             // 3. Checks
             if (options.ContainsKey("check-special-characters"))
             {
+                bool ignoreSame = options.ContainsKey("check-special-characters");
                 // check missing entries first as we will remove entries failed the check as well.
                 var missing = Localization.GetMissingEntries(newOrigin, input, false);
-                var check = Localization.CheckTranslation(newOrigin, input);
+                var check = Localization.CheckTranslation(newOrigin, input, ignoreSame);
                 YMLSafeFile checkyml = new YMLSafeFile();
                 checkyml.AppendLine(null, -1, "l_english:", null);
                 foreach (var entry in check)
@@ -305,8 +311,11 @@ namespace ParadoxLocalisationAssistant
                
                 foreach (var entry in missing)
                 {
+                    string chi = null;
+                    if (RemovedDiff.ContainsKey(entry.Item1))
+                        chi = RemovedDiff[entry.Item1];
                     checkyml.AppendLine(null, -1, "# Missing. origin: " + entry.Item3, null);
-                    checkyml.AppendLine(entry.Item1, entry.Item2, entry.Item4, null);
+                    checkyml.AppendLine(entry.Item1, entry.Item2, chi != null ?chi:entry.Item4, null);
                 }
 
                 string checkPath = null;
