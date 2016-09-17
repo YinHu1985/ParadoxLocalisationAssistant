@@ -273,7 +273,8 @@ namespace ParadoxLocalisationAssistant
                 Localization.MergeIn(input, oldTranslation, LocalizationDB.ImportMode.kIgnore);
             }
 
-            Dictionary<string, string> RemovedDiff = new Dictionary<string, string>();
+            Dictionary<string, string> RemovedDiffChi = new Dictionary<string, string>();
+            Dictionary<string, string> RemovedDiffEng = new Dictionary<string, string>();
             // 2. Remove diff
             if (oldOrigin != null)
             {
@@ -283,7 +284,8 @@ namespace ParadoxLocalisationAssistant
                     string chitext = input.LookupText(entry.Item1, entry.Item2);
                     if (chitext != null)
                     {
-                        RemovedDiff[entry.Item1] = chitext;
+                        RemovedDiffChi[entry.Item1] = chitext;
+                        RemovedDiffEng[entry.Item1] = entry.Item4;
                         input.Remove(entry.Item1, entry.Item2);
                     }
                 }
@@ -312,9 +314,14 @@ namespace ParadoxLocalisationAssistant
                 foreach (var entry in missing)
                 {
                     string chi = null;
-                    if (RemovedDiff.ContainsKey(entry.Item1))
-                        chi = RemovedDiff[entry.Item1];
+                    if (RemovedDiffChi.ContainsKey(entry.Item1))
+                        chi = RemovedDiffChi[entry.Item1];
+                    string oldeng = null;
+                    if (RemovedDiffChi.ContainsKey(entry.Item1))
+                        oldeng = RemovedDiffEng[entry.Item1];
                     checkyml.AppendLine(null, -1, "# Missing. origin: " + entry.Item3, null);
+                    if (oldeng != null)
+                        checkyml.AppendLine(null, -1, "       old origin: " + oldeng, null);
                     checkyml.AppendLine(entry.Item1, entry.Item2, chi != null ?chi:entry.Item4, null);
                 }
 
