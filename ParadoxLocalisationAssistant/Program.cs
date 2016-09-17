@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.IO;
 using System.Globalization;
+using System.Runtime.Serialization.Json;
 
 // modes: 
 // diff:    Compare [new-original] and [old-original], export different entires or entries missing in [old-original]
@@ -59,18 +60,43 @@ namespace ParadoxLocalisationAssistant
             { "-s", "split-lines" }, { "--split-lines", "split-lines" },
 
             { "--check-file-path", "check-file-path" },
+            { "--dump-options-path", "dump-options-path" }
         };
 
         static Dictionary<string, string> flagList = new Dictionary<string, string>()
         {
             { "-c", "check-special-characters" }, { "--check-special-characters", "check-special-characters" },
-            { "--ignore-potential-untranslated", "ignore-potential-untranslated" }
+            { "--ignore-potential-untranslated", "ignore-potential-untranslated" },
         };
 
         static Dictionary<string, string> ParseArgs(string[] args)
         {
             Dictionary<string, string> options = new Dictionary<string, string>();
 
+            if (args.Length == 2 && args[0] == "--config-file")
+            {
+                var lines = File.ReadLines(args[1], Encoding.GetEncoding(65001));
+                string current = null;
+                foreach (var line in lines)
+                {
+                    
+                    if (current != null)
+                    {
+                        options[current] = line;
+                        current = null;
+                    }
+                    else if (line.StartsWith("#"))
+                    {
+                        // ignore comment
+                    }
+                    else if (line.StartsWith("["))
+                    {
+                        current = line.Substring(1, line.Length - 2);
+                    }
+                    // else ignore
+                }
+                return options;
+            }
             for (int i = 0; i < args.Length; ++i)
             {
                 if (i == 0)
@@ -92,7 +118,21 @@ namespace ParadoxLocalisationAssistant
                         throw new ArgumentException(args[i]);             
                 }
             }
-
+            if (options.ContainsKey("dump-options-path"))
+            {
+                try
+                {
+                    StringBuilder output = new StringBuilder();
+                    foreach (var kv in options)
+                    {
+                        output.AppendFormat("[{0}]\r\n{1}\r\n\r\n", kv.Key, kv.Value);
+                    }
+                    File.WriteAllText(options["dump-options-path"], output.ToString(), Encoding.GetEncoding(65001));
+                }
+                catch (Exception)
+                {
+                }
+            }
             return options;
         }
 
