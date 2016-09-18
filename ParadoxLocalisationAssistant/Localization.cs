@@ -713,7 +713,7 @@ namespace ParadoxLocalisationAssistant
             }
 
 
-            var Regex = new Regex("\\$([\\w\\d\\-+/%|=]+)\\$");
+            var Regex = new Regex("\\$([^\\$]+)\\$");
             string replacement = "<VAR-$1>";
 
             return Regex.Replace(safeString.ToString(), replacement);
@@ -785,7 +785,7 @@ namespace ParadoxLocalisationAssistant
 
             }
 
-            var Regex = new Regex("<VAR-([\\w\\d\\-+/%|=]+)>");
+            var Regex = new Regex("<VAR-([^>]+)>");
             string replacement = "$$$1$$";
             return Regex.Replace(unsafeString.ToString(), replacement);
         }
