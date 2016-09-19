@@ -188,9 +188,9 @@ namespace ParadoxLocalisationAssistant
 
                 ILocalizationFile outfile = GetLocalizationFileInstance(outFileFormat);
                 if (!outfile.CanWrite())
-                    return false;
+                    continue;
                 if (!ExportLocalization(db, reffile, outfile))
-                    return false;
+                    continue;
                 string newName = Path.GetFileNameWithoutExtension(filename);
                 Directory.CreateDirectory(outPath);
                 if (splitLine <= 0)
