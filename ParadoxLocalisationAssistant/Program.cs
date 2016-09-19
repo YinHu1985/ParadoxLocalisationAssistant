@@ -306,40 +306,64 @@ namespace ParadoxLocalisationAssistant
                 oldTranslation = new SingleLanguageDB("english");
                 Localization.BatchImportToSingleLanguageDB(oldTranslation, oldTranslationPath, oldTranslationFormat);
             }
+            
+            Dictionary<string, string> RemovedDiffChi = new Dictionary<string, string>();
+            Dictionary<string, string> RemovedDiffEng = new Dictionary<string, string>();
+            // 1. Remove diff from old translation 
+            if (oldOrigin != null && oldTranslation != null)
+            {
+                var diff = Localization.Compare(oldOrigin, newOrigin, false);
+                foreach (var entry in diff)
+                {
+                    string chitext = oldTranslation.LookupText(entry.Item1, entry.Item2);
+                    if (chitext != null)
+                    {
+                        RemovedDiffChi[entry.Item1] = chitext;
+                        RemovedDiffEng[entry.Item1] = entry.Item4;
+                        oldTranslation.Remove(entry.Item1, entry.Item2);
+                    }
+                }
 
-            // 1. Merge in old translation
+            }
+            // 2. Merge in old translation to input 
             if (oldTranslation != null)
             {
                 Localization.MergeIn(input, oldTranslation, LocalizationDB.ImportMode.kIgnore);
             }
 
-            Dictionary<string, string> RemovedDiffChi = new Dictionary<string, string>();
-            Dictionary<string, string> RemovedDiffEng = new Dictionary<string, string>();
-            // 2. Remove diff
-            if (oldOrigin != null)
+            // 3. Find diff entires 
+            YMLSafeFile diffyml = new YMLSafeFile();
+            diffyml.AppendLine(null, -1, "l_english:", null);
+            var missing = Localization.GetMissingEntries(newOrigin, input, false);
+            foreach (var entry in missing)
             {
-                var diff = Localization.Compare(oldOrigin, newOrigin, false);
-                foreach (var entry in diff)
-                {
-                    string chitext = input.LookupText(entry.Item1, entry.Item2);
-                    if (chitext != null)
-                    {
-                        RemovedDiffChi[entry.Item1] = chitext;
-                        RemovedDiffEng[entry.Item1] = entry.Item4;
-                        input.Remove(entry.Item1, entry.Item2);
-                    }
-                }
+                string chi = null;
+                if (RemovedDiffChi.ContainsKey(entry.Item1))
+                    chi = RemovedDiffChi[entry.Item1];
+                string oldeng = null;
+                if (RemovedDiffChi.ContainsKey(entry.Item1))
+                    oldeng = RemovedDiffEng[entry.Item1];
+                diffyml.AppendLine(null, -1, "# Missing. origin: " + entry.Item3, null);
+                if (oldeng != null)
+                    diffyml.AppendLine(null, -1, "#      old origin: " + oldeng, null);
+                diffyml.AppendLine(entry.Item1, entry.Item2, chi != null ? chi : entry.Item4, null);
             }
+            string diffPath = null;
+            if (options.TryGetValue("diff-file-path", out diffPath))
+                diffyml.Write(diffPath);
+            else
+                diffyml.Write(".\\diff.yml");
 
             // 3. Checks
             if (options.ContainsKey("check-special-characters"))
             {
                 bool ignoreSame = options.ContainsKey("check-special-characters");
                 // check missing entries first as we will remove entries failed the check as well.
-                var missing = Localization.GetMissingEntries(newOrigin, input, false);
+                
                 var check = Localization.CheckTranslation(newOrigin, input, ignoreSame);
                 YMLSafeFile checkyml = new YMLSafeFile();
                 checkyml.AppendLine(null, -1, "l_english:", null);
+                
                 foreach (var entry in check)
                 {
                     if (entry.Item3 != null)
@@ -351,23 +375,11 @@ namespace ParadoxLocalisationAssistant
                     input.Remove(entry.Item1, entry.Item2);
                 }
                
-                foreach (var entry in missing)
-                {
-                    string chi = null;
-                    if (RemovedDiffChi.ContainsKey(entry.Item1))
-                        chi = RemovedDiffChi[entry.Item1];
-                    string oldeng = null;
-                    if (RemovedDiffChi.ContainsKey(entry.Item1))
-                        oldeng = RemovedDiffEng[entry.Item1];
-                    checkyml.AppendLine(null, -1, "# Missing. origin: " + entry.Item3, null);
-                    if (oldeng != null)
-                        checkyml.AppendLine(null, -1, "#      old origin: " + oldeng, null);
-                    checkyml.AppendLine(entry.Item1, entry.Item2, chi != null ?chi:entry.Item4, null);
-                }
-
                 string checkPath = null;
                 if (options.TryGetValue("check-file-path", out checkPath))
                     checkyml.Write(checkPath);
+                else
+                    checkyml.Write(".\\check.yml");
             }
 
             // 4. Export the merged translation
