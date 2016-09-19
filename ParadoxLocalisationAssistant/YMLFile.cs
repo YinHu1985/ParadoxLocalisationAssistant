@@ -108,8 +108,8 @@ namespace ParadoxLocalisationAssistant
             if (IsLineLocalizationData(0))
                 return false;
             string firstline = "l_" + dummyLanguage + ":";
-            
-            return lines[0].data == firstline;
+
+            return lines[0].data.TrimEnd(' ') == firstline;
         }
 
         public string DefaultNamePattern()
