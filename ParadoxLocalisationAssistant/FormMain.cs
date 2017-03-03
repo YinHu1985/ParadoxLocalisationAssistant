@@ -16,6 +16,39 @@ namespace ParadoxLocalisationAssistant
             InitializeComponent();
         }
 
+        private void FormMain_Load(object sender, EventArgs e)
+        {
+            foreach(TabPage tab in tabControlMain.TabPages)
+            {
+                foreach(Control c in tab.Controls)
+                {
+                    if ((string)c.Tag == "FileFormat" && c is ComboBox)
+                    {
+                        ComboBox cmb = (ComboBox)c;
+                        cmb.DataSource = LocalizationFileFormat.GetAllFileFormats();
+                    }
+                }
+            }
+            updateTextBoxFromSettings();
+        }
+
+        private void updateTextBoxFromSettings()
+        {
+            txtBackupGamePath.Text = Properties.Settings.Default.GamePath;
+            txtBackupNewOriginalPath.Text = Properties.Settings.Default.NewOriginalPath;
+            txtBackupOldOriginalPath.Text = Properties.Settings.Default.OldOriginalPath;
+
+            txtDiffNewOriginalPath.Text = Properties.Settings.Default.NewOriginalPath;
+            cmbDiffNewOriginalFormat.Text = Properties.Settings.Default.NewOriginalFormat;
+            txtDiffOldOriginalPath.Text = Properties.Settings.Default.OldOriginalPath;
+            cmbDiffOldOriginalFormat.Text = Properties.Settings.Default.OldOriginalFormat;
+            txtDiffOldTranslationPath.Text = Properties.Settings.Default.OldTranslationPath;
+            cmbDiffOldTranslationFormat.Text = Properties.Settings.Default.OldTranslationFormat;
+            txtDiffOutputPath.Text = Properties.Settings.Default.DiffOutputPath;
+            cmbDiffOutputFormat.Text = Properties.Settings.Default.DiffOutputFormat;
+            txtDiffDiffFilePath.Text = Properties.Settings.Default.DiffFilePath;
+        }
+
         private void btnBackup_Click(object sender, EventArgs e)
         {
             string gamePath = txtBackupGamePath.Text;
@@ -37,19 +70,45 @@ namespace ParadoxLocalisationAssistant
             {
                 MessageBox.Show(ex.Message + "\n\n" + ex.StackTrace);
             }
-            
+
         }
 
-        private void FormMain_Load(object sender, EventArgs e)
+        private void btnDiff_Click(object sender, EventArgs e)
         {
+            string newOriginalPath = txtDiffNewOriginalPath.Text;
+            string newOriginalFormat = cmbDiffNewOriginalFormat.Text;
+            string oldOriginalPath = txtDiffOldOriginalPath.Text;
+            string oldOriginalFormat = cmbDiffOldOriginalFormat.Text;
+            string oldTranslationPath = txtDiffOldTranslationPath.Text;
+            string oldTranslationFormat = cmbDiffOldTranslationFormat.Text;
+            string diffOutputPath = txtDiffOutputPath.Text;
+            string diffOutputFormat = cmbDiffOutputFormat.Text;
+            string diffFilePath = txtDiffDiffFilePath.Text;
+            string language = Properties.Settings.Default.Language;
+
+            Properties.Settings.Default.NewOriginalPath = newOriginalPath;
+            Properties.Settings.Default.NewOriginalFormat = newOriginalFormat;
+            Properties.Settings.Default.OldOriginalPath = oldOriginalPath;
+            Properties.Settings.Default.OldOriginalFormat = oldOriginalFormat;
+            Properties.Settings.Default.OldTranslationPath = oldTranslationPath;
+            Properties.Settings.Default.OldTranslationFormat = oldTranslationFormat;
+            Properties.Settings.Default.DiffOutputPath = diffOutputPath;
+            Properties.Settings.Default.DiffOutputFormat = diffOutputFormat;
+            Properties.Settings.Default.DiffFilePath = diffFilePath;
+            Properties.Settings.Default.Save();
             updateTextBoxFromSettings();
-        }
 
-        private void updateTextBoxFromSettings()
-        {
-            txtBackupGamePath.Text = Properties.Settings.Default.GamePath;
-            txtBackupNewOriginalPath.Text = Properties.Settings.Default.NewOriginalPath;
-            txtBackupOldOriginalPath.Text = Properties.Settings.Default.OldOriginalPath;
+            try
+            {
+                if (diffOutputPath == "")
+                    diffOutputPath = null;
+                Commands.DoDiff(newOriginalPath, newOriginalFormat, oldOriginalPath, oldOriginalFormat,
+                    oldTranslationPath, oldTranslationFormat, diffOutputPath, diffOutputFormat, diffFilePath, language);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message + "\n\n" + ex.StackTrace);
+            }
         }
     }
 }

@@ -140,25 +140,26 @@ namespace ParadoxLocalisationAssistant
         static bool DoDiff(Dictionary<string, string> options)
         {
             string outputPath = null;
-            string newOriginPath = null;
-            string oldOriginPath = null;
+            string newOriginalPath = null;
+            string oldOriginalPath = null;
             string oldTranslationPath = null;
 
             string outputFormat = null;
-            string newOriginFormat = null;
-            string oldOriginFormat = null;
+            string newOriginalFormat = null;
+            string oldOriginalFormat = null;
             string oldTranslationFormat = null;
 
-            string diffPath = null;
+            string diffFilePath = null;
+            string language = Properties.Settings.Default.Language;
 
-            if (!options.TryGetValue("new-original-path", out newOriginPath))
+            if (!options.TryGetValue("new-original-path", out newOriginalPath))
                 throw new ArgumentException("Missing new-original-path.");
-            if (!options.TryGetValue("new-original-format", out newOriginFormat))
+            if (!options.TryGetValue("new-original-format", out newOriginalFormat))
                 throw new ArgumentException("Missing new-original-format.");
 
-            if (!options.TryGetValue("old-original-path", out oldOriginPath))
+            if (!options.TryGetValue("old-original-path", out oldOriginalPath))
                 throw new ArgumentException("Missing old-original-path.");
-            if (!options.TryGetValue("old-original-format", out oldOriginFormat))
+            if (!options.TryGetValue("old-original-format", out oldOriginalFormat))
                 throw new ArgumentException("Missing old-original-format.");
 
             if (!options.TryGetValue("old-translation-path", out oldTranslationPath))
@@ -169,43 +170,11 @@ namespace ParadoxLocalisationAssistant
             options.TryGetValue("output-path", out outputPath);
             options.TryGetValue("output-format", out outputFormat);
 
-            if (!options.TryGetValue("diff-file-path", out diffPath))
+            if (!options.TryGetValue("diff-file-path", out diffFilePath))
                 throw new ArgumentException("Missing diff-file-path.");
-
-            // all dummy english for now..
-            SingleLanguageDB oldOrigin = new SingleLanguageDB("english");
-            SingleLanguageDB newOrigin = new SingleLanguageDB("english");
-            SingleLanguageDB oldTranslation = new SingleLanguageDB("english");
-
-            Localization.BatchImportToSingleLanguageDB(newOrigin, newOriginPath, newOriginFormat);
-            Localization.BatchImportToSingleLanguageDB(oldOrigin, oldOriginPath, oldOriginFormat);  
-            Localization.BatchImportToSingleLanguageDB(oldTranslation, oldTranslationPath, oldTranslationFormat);
-
-
-            var diff = Localization.Compare(oldOrigin, newOrigin, false);
-            YMLFile diffyml = new YMLFile();
-            diffyml.AppendLine(null, -1, "l_english:", null);
-            foreach (var entry in diff)
-            {
-                string chitext = oldTranslation.LookupText(entry.Item1, entry.Item2);
-                diffyml.AppendLine(null, -1, "# new: " + entry.Item3, null);
-                diffyml.AppendLine(null, -1, "# old: " + entry.Item4, null);
-
-                if (chitext != null)
-                    diffyml.AppendLine(entry.Item1, entry.Item2, chitext, null);
-                else
-                    diffyml.AppendLine(entry.Item1, entry.Item2, entry.Item3, null);
-
-                // Remove trnaslation, prepare for export
-                if (chitext != null)
-                    oldTranslation.Remove(entry.Item1, entry.Item2);
-            }
-
-            diffyml.Write(diffPath);
-
-            if (outputPath != null && outputFormat != null)
-                return Localization.BatchExportLocalization(oldTranslation, newOriginPath, newOriginFormat, null, outputPath, outputFormat);
-            return true;
+            
+            return Commands.DoDiff(newOriginalPath, newOriginalFormat, oldOriginalPath, oldOriginalFormat,
+                oldTranslationPath, oldTranslationFormat, outputPath, outputFormat, diffFilePath, language);
         }
         
         static bool DoConvert(Dictionary<string, string> options)

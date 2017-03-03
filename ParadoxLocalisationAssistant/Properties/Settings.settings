@@ -32,5 +32,14 @@
     <Setting Name="OldTranslationFormat" Type="System.String" Scope="User">
       <Value Profile="(Default)">pml</Value>
     </Setting>
+    <Setting Name="DiffOutputPath" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="DiffOutputFormat" Type="System.String" Scope="User">
+      <Value Profile="(Default)">pml-safe</Value>
+    </Setting>
+    <Setting Name="DiffFilePath" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
   </Settings>
 </SettingsFile>

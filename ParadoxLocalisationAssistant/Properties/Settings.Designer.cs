@@ -142,5 +142,41 @@ namespace ParadoxLocalisationAssistant.Properties {
                 this["OldTranslationFormat"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string DiffOutputPath {
+            get {
+                return ((string)(this["DiffOutputPath"]));
+            }
+            set {
+                this["DiffOutputPath"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("pml-safe")]
+        public string DiffOutputFormat {
+            get {
+                return ((string)(this["DiffOutputFormat"]));
+            }
+            set {
+                this["DiffOutputFormat"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string DiffFilePath {
+            get {
+                return ((string)(this["DiffFilePath"]));
+            }
+            set {
+                this["DiffFilePath"] = value;
+            }
+        }
     }
 }

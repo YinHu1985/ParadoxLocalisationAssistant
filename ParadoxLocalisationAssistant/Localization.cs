@@ -10,48 +10,11 @@ namespace ParadoxLocalisationAssistant
 {
     public static class Localization
     {
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="fileFormat"></param>
-        /// <returns></returns>
-        static ILocalizationFile GetLocalizationFileInstance(string fileFormat)
-        {
-            switch (fileFormat)
-            {
-                case "pml": return new YMLFile();
-                case "csv": return new CSVFile();
-                case "csv-gbk": return new CSVGBKFile();
-                case "csv-safe": return new CSVSafeFile();
-                case "csv-safe-gbk": return new CSVSafeGBKFile();
-                case "pml-safe": return new YMLSafeFile();
-                case "eu4pml": return new YMLEu4File();
-                case "eu4pml-sp": return new YMLEu4SPFile();
-                case "eu4pml-safe": return new YMLEu4SafeFile();
-                default: return null;
-            }
-        }
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="fileFormat"></param>
-        /// <returns></returns>
-        static bool IsFileFormatSupported(string fileFormat)
+        static public int BatchImportToSingleLanguageDB(SingleLanguageDB db, string path, string fileFormatString,
+            string overridePattern = null, LocalizationDB.ImportMode mode = LocalizationDB.ImportMode.kReplace)
         {
-            switch (fileFormat)
-            {
-                case "pml":
-                case "csv":
-                case "csv-gbk": 
-                case "pml-safe":
-                case "eu4pml":
-                case "eu4pml-sp":
-                case "eu4pml-safe":
-                case "csv-safe":
-                case "csv-safe-gbk": return true;
-                default: return false;
-            }
+            return BatchImportToSingleLanguageDB(db, path, LocalizationFileFormat.GetFileFormat(fileFormatString), overridePattern, mode);
         }
 
         /// <summary>
@@ -63,17 +26,17 @@ namespace ParadoxLocalisationAssistant
         /// <param name="overridePattern"></param>
         /// <param name="mode"></param>
         /// <returns></returns>
-        static public int BatchImportToSingleLanguageDB(SingleLanguageDB db, string path, string fileFormat,
+        static public int BatchImportToSingleLanguageDB(SingleLanguageDB db, string path, LocalizationFileFormat fileFormat,
             string overridePattern = null, LocalizationDB.ImportMode mode = LocalizationDB.ImportMode.kReplace)
         {
             if (!Directory.Exists(path))
                 return 0;
 
-            string pattern = overridePattern != null ? overridePattern : GetLocalizationFileInstance(fileFormat).DefaultNamePattern();
+            string pattern = overridePattern != null ? overridePattern : fileFormat.GetLocalizationFileInstance().DefaultNamePattern();
             int totalCount = 0;
             foreach (var filename in Directory.EnumerateFiles(path, pattern))
             {
-                ILocalizationFile file = GetLocalizationFileInstance(fileFormat);
+                ILocalizationFile file = fileFormat.GetLocalizationFileInstance();
                 file.Read(filename);
                 totalCount += ImportToSingleLanguageDBFromFile(db, file, mode);
             }
@@ -162,6 +125,14 @@ namespace ParadoxLocalisationAssistant
             return true;
         }
 
+        static public bool BatchExportLocalization(SingleLanguageDB db,
+            string refPath, string refFileFormatString, string overrideRefPattern,
+            string outPath, string outFileFormatString, int splitLine = 0)
+        {
+            return BatchExportLocalization(db, refPath, LocalizationFileFormat.GetFileFormat(refFileFormatString),
+                overrideRefPattern, outPath, LocalizationFileFormat.GetFileFormat(outFileFormatString), splitLine);
+        }
+
         /// <summary>
         /// 
         /// </summary>
@@ -174,19 +145,19 @@ namespace ParadoxLocalisationAssistant
         /// <param name="splitLine"></param>
         /// <returns></returns>
         static public bool BatchExportLocalization(SingleLanguageDB db,
-            string refPath, string refFileFormat, string overrideRefPattern,
-            string outPath, string outFileFormat, int splitLine = 0)
+            string refPath, LocalizationFileFormat refFileFormat, string overrideRefPattern,
+            string outPath, LocalizationFileFormat outFileFormat, int splitLine = 0)
         {
             if (!Directory.Exists(refPath))
                 return false;
 
-            string refpattern = overrideRefPattern != null ? overrideRefPattern : GetLocalizationFileInstance(refFileFormat).DefaultNamePattern();
+            string refpattern = overrideRefPattern != null ? overrideRefPattern : refFileFormat.GetLocalizationFileInstance().DefaultNamePattern();
             foreach (var filename in Directory.EnumerateFiles(refPath, refpattern))
             {
-                ILocalizationFile reffile = GetLocalizationFileInstance(refFileFormat);
+                ILocalizationFile reffile = refFileFormat.GetLocalizationFileInstance();
                 reffile.Read(filename);
 
-                ILocalizationFile outfile = GetLocalizationFileInstance(outFileFormat);
+                ILocalizationFile outfile = outFileFormat.GetLocalizationFileInstance();
                 if (!outfile.CanWrite())
                     continue;
                 if (!ExportLocalization(db, reffile, outfile))
@@ -202,7 +173,7 @@ namespace ParadoxLocalisationAssistant
                     int count = outfile.CountLines();
                     if (count > 0)
                     {
-                        ILocalizationFile splitFile = GetLocalizationFileInstance(outFileFormat);
+                        ILocalizationFile splitFile = outFileFormat.GetLocalizationFileInstance();
                         splitFile.GenHeader("english");
                         int contentCount = 0;
                         int fileCount = 1;
@@ -215,7 +186,7 @@ namespace ParadoxLocalisationAssistant
                                 contentCount = 0;
                                 if (i != count -1)
                                 {
-                                    splitFile = GetLocalizationFileInstance(outFileFormat);
+                                    splitFile = outFileFormat.GetLocalizationFileInstance();
                                     splitFile.GenHeader("english");
                                 }
                             }
