@@ -6,6 +6,7 @@ using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Windows.Forms;
+using System.IO;
 
 namespace ParadoxLocalisationAssistant
 {
@@ -109,6 +110,30 @@ namespace ParadoxLocalisationAssistant
             {
                 MessageBox.Show(ex.Message + "\n\n" + ex.StackTrace);
             }
+        }
+
+        private void selectFolder_Click(object sender, EventArgs e)
+        {
+            string path = folderBrowserDialog1.SelectedPath;
+            if (string.IsNullOrEmpty(path))
+                folderBrowserDialog1.SelectedPath = Directory.GetCurrentDirectory();
+            
+            DialogResult result = folderBrowserDialog1.ShowDialog(this);
+            if (result == DialogResult.OK)
+            {
+                path = folderBrowserDialog1.SelectedPath;
+                if (sender == btnSelectDiffDiffFilePath)
+                    txtDiffDiffFilePath.Text = path;
+                else if (sender == btnSelectDiffNewOriginalPath)
+                    txtDiffNewOriginalPath.Text = path;
+                else if (sender == btnSelectDiffOldOriginalPath)
+                    txtDiffOldOriginalPath.Text = path;
+                else if (sender == btnSelectDiffOldTranslationPath)
+                    txtDiffOldTranslationPath.Text = path;
+                else if (sender == btnSelectDiffOutputPath)
+                    txtDiffOutputPath.Text = path;
+            }
+
         }
     }
 }
