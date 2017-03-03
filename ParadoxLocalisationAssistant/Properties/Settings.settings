@@ -1,0 +1,36 @@
+﻿<?xml version='1.0' encoding='utf-8'?>
+<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="ParadoxLocalisationAssistant.Properties" GeneratedClassName="Settings">
+  <Profiles />
+  <Settings>
+    <Setting Name="Language" Type="System.String" Scope="User">
+      <Value Profile="(Default)">english</Value>
+    </Setting>
+    <Setting Name="GamePath" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="NewOriginalPath" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="NewOriginalFormat" Type="System.String" Scope="User">
+      <Value Profile="(Default)">pml</Value>
+    </Setting>
+    <Setting Name="OldOriginalPath" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="OldOriginalFormat" Type="System.String" Scope="User">
+      <Value Profile="(Default)">pml</Value>
+    </Setting>
+    <Setting Name="NewTranslationPath" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="NewTranslationFormat" Type="System.String" Scope="User">
+      <Value Profile="(Default)">pml</Value>
+    </Setting>
+    <Setting Name="OldTranslationPath" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="OldTranslationFormat" Type="System.String" Scope="User">
+      <Value Profile="(Default)">pml</Value>
+    </Setting>
+  </Settings>
+</SettingsFile>

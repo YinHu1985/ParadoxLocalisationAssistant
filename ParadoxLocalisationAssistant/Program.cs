@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.IO;
 using System.Globalization;
 using System.Runtime.Serialization.Json;
+using System.Windows.Forms;
 
 // modes: 
 // diff:    Compare [new-original] and [old-original], export different entires or entries missing in [old-original]
@@ -463,8 +464,19 @@ namespace ParadoxLocalisationAssistant
             return true;
         }
 
+        [STAThread]
         static void Main(string[] args)
         {
+            if (args.Length == 0)
+            {
+                // Window Mode
+                Application.EnableVisualStyles();
+                Application.SetCompatibleTextRenderingDefault(false);
+                Application.Run(new FormMain());
+                return;
+            }
+
+            // Console Mode
             try
             {
                 Dictionary<string, string> options = ParseArgs(args);
