@@ -26,7 +26,7 @@ namespace ParadoxLocalisationAssistant
                 file.CopyTo(Path.Combine(target.FullName, file.Name));
         }
 
-        static bool DoBackup(string gameDirPath, string backupDirPath, string backupForBackupPath, string language)
+        public static bool DoBackup(string gameDirPath, string backupDirPath, string backupForBackupPath, string language)
         {
             string languageTag = GetLanguageTag(language);
 
