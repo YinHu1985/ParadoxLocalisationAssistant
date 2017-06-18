@@ -178,5 +178,89 @@ namespace ParadoxLocalisationAssistant.Properties {
                 this["DiffFilePath"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string MergeInputPath {
+            get {
+                return ((string)(this["MergeInputPath"]));
+            }
+            set {
+                this["MergeInputPath"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("pml-safe")]
+        public string MergeInputFormat {
+            get {
+                return ((string)(this["MergeInputFormat"]));
+            }
+            set {
+                this["MergeInputFormat"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string MergeOutputPath {
+            get {
+                return ((string)(this["MergeOutputPath"]));
+            }
+            set {
+                this["MergeOutputPath"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("pml")]
+        public string MergeOutputFormat {
+            get {
+                return ((string)(this["MergeOutputFormat"]));
+            }
+            set {
+                this["MergeOutputFormat"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool CheckSpecialChar {
+            get {
+                return ((bool)(this["CheckSpecialChar"]));
+            }
+            set {
+                this["CheckSpecialChar"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string CheckFilePath {
+            get {
+                return ((string)(this["CheckFilePath"]));
+            }
+            set {
+                this["CheckFilePath"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool IgnorePotentialUntranslated {
+            get {
+                return ((bool)(this["IgnorePotentialUntranslated"]));
+            }
+            set {
+                this["IgnorePotentialUntranslated"] = value;
+            }
+        }
     }
 }

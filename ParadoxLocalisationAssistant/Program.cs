@@ -225,15 +225,18 @@ namespace ParadoxLocalisationAssistant
         {
             string inputPath = null;
             string outputPath = null;
-            string newOriginPath = null;
-            string oldOriginPath = null;
+            string newOriginalPath = null;
+            string oldOriginalPath = null;
             string oldTranslationPath = null;
 
             string inputFormat = null;
             string outputFormat = null;
-            string newOriginFormat = null;
-            string oldOriginFormat = null;
-            string oldTranslationFormat = null; 
+            string newOriginalFormat = null;
+            string oldOriginalFormat = null;
+            string oldTranslationFormat = null;
+
+            string diffFilePath = ".\\diff.yml";
+            string language = Properties.Settings.Default.Language;
 
             if (!options.TryGetValue("input-path", out inputPath))
                 throw new ArgumentException("Missing input-path.");
@@ -245,115 +248,27 @@ namespace ParadoxLocalisationAssistant
             if (!options.TryGetValue("output-format", out outputFormat))
                 throw new ArgumentException("Missing output-format.");
 
-            if (!options.TryGetValue("new-original-path", out newOriginPath))
+            if (!options.TryGetValue("new-original-path", out newOriginalPath))
                 throw new ArgumentException("Missing new-original-path.");
-            if (!options.TryGetValue("new-original-format", out newOriginFormat))
+            if (!options.TryGetValue("new-original-format", out newOriginalFormat))
                 throw new ArgumentException("Missing new-original-format.");
         
-            options.TryGetValue("old-original-path", out oldOriginPath);
-            options.TryGetValue("old-original-format", out oldOriginFormat);
+            options.TryGetValue("old-original-path", out oldOriginalPath);
+            options.TryGetValue("old-original-format", out oldOriginalFormat);
 
             options.TryGetValue("old-translation-path", out oldTranslationPath);
             options.TryGetValue("old-translation-format", out oldTranslationFormat);
 
-            // all dummy english for now..
-            SingleLanguageDB input = new SingleLanguageDB("english");
-            SingleLanguageDB newOrigin = new SingleLanguageDB("english");
-            Localization.BatchImportToSingleLanguageDB(input, inputPath, inputFormat);
-            Localization.BatchImportToSingleLanguageDB(newOrigin, newOriginPath, newOriginFormat);
+            options.TryGetValue("diff-file-path", out diffFilePath);
 
+            bool checkSpecialChar = options.ContainsKey("check-special-characters");
+            bool ignoreSame = options.ContainsKey("ignore-potential-untranslated");
+            string checkFilePath = ".\\check.yml";
+            options.TryGetValue("check-file-path", out checkFilePath);
 
-            // optional
-            SingleLanguageDB oldOrigin = null;
-            SingleLanguageDB oldTranslation = null;
-            if (oldOriginPath != null && oldOriginFormat != null)
-            {
-                oldOrigin = new SingleLanguageDB("english");
-                Localization.BatchImportToSingleLanguageDB(oldOrigin, oldOriginPath, oldOriginFormat);
-            }
-            if (oldTranslationPath != null && oldTranslationFormat != null)
-            {
-                oldTranslation = new SingleLanguageDB("english");
-                Localization.BatchImportToSingleLanguageDB(oldTranslation, oldTranslationPath, oldTranslationFormat);
-            }
-            
-            Dictionary<string, string> RemovedDiffChi = new Dictionary<string, string>();
-            Dictionary<string, string> RemovedDiffEng = new Dictionary<string, string>();
-            // 1. Remove diff from old translation 
-            if (oldOrigin != null && oldTranslation != null)
-            {
-                var diff = Localization.Compare(oldOrigin, newOrigin, false);
-                foreach (var entry in diff)
-                {
-                    string chitext = oldTranslation.LookupText(entry.Item1, entry.Item2);
-                    if (chitext != null)
-                    {
-                        RemovedDiffChi[entry.Item1] = chitext;
-                        RemovedDiffEng[entry.Item1] = entry.Item4;
-                        oldTranslation.Remove(entry.Item1, entry.Item2);
-                    }
-                }
-
-            }
-            // 2. Merge in old translation to input 
-            if (oldTranslation != null)
-            {
-                Localization.MergeIn(input, oldTranslation, LocalizationDB.ImportMode.kIgnore);
-            }
-
-            // 3. Find diff entires 
-            YMLSafeFile diffyml = new YMLSafeFile();
-            diffyml.AppendLine(null, -1, "l_english:", null);
-            var missing = Localization.GetMissingEntries(newOrigin, input, false);
-            foreach (var entry in missing)
-            {
-                string chi = null;
-                if (RemovedDiffChi.ContainsKey(entry.Item1))
-                    chi = RemovedDiffChi[entry.Item1];
-                string oldeng = null;
-                if (RemovedDiffChi.ContainsKey(entry.Item1))
-                    oldeng = RemovedDiffEng[entry.Item1];
-                diffyml.AppendLine(null, -1, "# Missing. origin: " + entry.Item3, null);
-                if (oldeng != null)
-                    diffyml.AppendLine(null, -1, "#      old origin: " + oldeng, null);
-                diffyml.AppendLine(entry.Item1, entry.Item2, chi != null ? chi : entry.Item4, null);
-            }
-            string diffPath = null;
-            if (options.TryGetValue("diff-file-path", out diffPath))
-                diffyml.Write(diffPath);
-            else
-                diffyml.Write(".\\diff.yml");
-
-            // 3. Checks
-            if (options.ContainsKey("check-special-characters"))
-            {
-                bool ignoreSame = options.ContainsKey("check-special-characters");
-                // check missing entries first as we will remove entries failed the check as well.
-                
-                var check = Localization.CheckTranslation(newOrigin, input, ignoreSame);
-                YMLSafeFile checkyml = new YMLSafeFile();
-                checkyml.AppendLine(null, -1, "l_english:", null);
-                
-                foreach (var entry in check)
-                {
-                    if (entry.Item3 != null)
-                    {
-                        checkyml.AppendLine(null, -1, "# Check Fail, origin: " + entry.Item3, null);
-                        checkyml.AppendLine(entry.Item1, entry.Item2, entry.Item4, null);
-                    }
-                    // Remove trnaslation, prepare for export
-                    input.Remove(entry.Item1, entry.Item2);
-                }
-               
-                string checkPath = null;
-                if (options.TryGetValue("check-file-path", out checkPath))
-                    checkyml.Write(checkPath);
-                else
-                    checkyml.Write(".\\check.yml");
-            }
-
-            // 4. Export the merged translation
-            return Localization.BatchExportLocalization(input, newOriginPath, newOriginFormat, null, outputPath, outputFormat);
+            return Commands.DoMerge(newOriginalPath, newOriginalFormat, oldOriginalPath, oldOriginalFormat,
+                oldTranslationPath, oldTranslationFormat, inputPath, inputFormat, outputPath, outputFormat, 
+                diffFilePath, language, checkSpecialChar, ignoreSame, checkFilePath);
         }
 
         static bool DoRefine(Dictionary<string, string> options)

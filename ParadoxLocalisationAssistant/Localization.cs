@@ -10,6 +10,21 @@ namespace ParadoxLocalisationAssistant
 {
     public static class Localization
     {
+        public class DiffResultEntry
+        {
+            public string Tag { get; set; }
+            public int Version { get; set; }
+            public string NewText { get; set; }
+            public string OldText { get; set; }
+
+            public DiffResultEntry(string tag, int version, string newText, string oldText)
+            {
+                Tag = tag;
+                Version = version;
+                NewText = newText;
+                OldText = oldText;
+            }
+        }
 
         static public int BatchImportToSingleLanguageDB(SingleLanguageDB db, string path, string fileFormatString,
             string overridePattern = null, LocalizationDB.ImportMode mode = LocalizationDB.ImportMode.kReplace)
@@ -221,9 +236,9 @@ namespace ParadoxLocalisationAssistant
         /// <param name="src"></param>
         /// <param name="target"></param>
         /// <returns>tag, ver, missing text, potential text</returns>
-        static public List<Tuple<string, int, string, string>> GetMissingEntries(SingleLanguageDB src, SingleLanguageDB target, bool onlyLatest)
+        static public List<DiffResultEntry> GetMissingEntries(SingleLanguageDB src, SingleLanguageDB target, bool onlyLatest)
         {
-            List<Tuple<string, int, string, string>> result = new List<Tuple<string, int, string, string>>();
+            List<DiffResultEntry> result = new List<DiffResultEntry>();
             foreach (var entry in src)
             {
                 string tag = entry.Key;
@@ -238,7 +253,7 @@ namespace ParadoxLocalisationAssistant
                         var potential = target.LookupLatestText(tag);
                         if (potential != null)
                             text = potential.Item2;
-                        result.Add(new Tuple<string, int, string, string>(tag, ver, refText, text));
+                        result.Add(new DiffResultEntry(tag, ver, refText, text));
                     }
                 }
                 else
@@ -253,7 +268,7 @@ namespace ParadoxLocalisationAssistant
                             var potential = target.LookupLatestText(tag);
                             if (potential != null)
                                 text = potential.Item2;
-                            result.Add(new Tuple<string, int, string, string>(tag, ver, refText, text));
+                            result.Add(new DiffResultEntry(tag, ver, refText, text));
                         }
                     }
                 }
@@ -268,9 +283,9 @@ namespace ParadoxLocalisationAssistant
         /// <param name="oldDb"></param>
         /// <param name="newDb"></param>
         /// <returns>tag, ver, new string, old text</returns>
-        static public List<Tuple<string, int, string, string>> Compare(SingleLanguageDB oldDb, SingleLanguageDB newDb, bool lowercase = false)
+        static public List<DiffResultEntry> Compare(SingleLanguageDB oldDb, SingleLanguageDB newDb, bool lowercase = false)
         {
-            List<Tuple<string, int, string, string>> result = new List<Tuple<string, int, string, string>>();
+            List<DiffResultEntry> result = new List<DiffResultEntry>();
             foreach (var entry in newDb)
             {
                 string tag = entry.Key;
@@ -284,7 +299,7 @@ namespace ParadoxLocalisationAssistant
                         var potential = oldDb.LookupLatestText(tag);
                         if (potential != null)
                             text = potential.Item2;
-                        result.Add(new Tuple<string, int, string, string>(tag, ver, refText, text));
+                        result.Add(new DiffResultEntry(tag, ver, refText, text));
                     }
                     else
                     {
@@ -293,14 +308,14 @@ namespace ParadoxLocalisationAssistant
                         {
                             if (refText.ToLower() != text.ToLower())
                             {
-                                result.Add(new Tuple<string, int, string, string>(tag, ver, refText, text));
+                                result.Add(new DiffResultEntry(tag, ver, refText, text));
                             }
                         }
                         else
                         {
                             if (refText != text)
                             {
-                                result.Add(new Tuple<string, int, string, string>(tag, ver, refText, text));
+                                result.Add(new DiffResultEntry(tag, ver, refText, text));
                             }
                         }
                     }
@@ -488,9 +503,9 @@ namespace ParadoxLocalisationAssistant
         /// <param name="translation"></param>
         /// <param name="removeRedundant"></param>
         /// <returns></returns>
-        static public List<Tuple<string, int, string, string>> CheckTranslation(SingleLanguageDB original, SingleLanguageDB translation, bool ignoreSame)
+        static public List<DiffResultEntry> CheckTranslation(SingleLanguageDB original, SingleLanguageDB translation, bool ignoreSame)
         {
-            List<Tuple<string, int, string, string>> check = new List<Tuple<string, int, string, string>>();
+            List<DiffResultEntry> check = new List<DiffResultEntry>();
             foreach (var entry in translation)
             {
                 foreach (var kv in entry.Value)
@@ -500,11 +515,11 @@ namespace ParadoxLocalisationAssistant
                     {
                         if (ignoreSame && engText == kv.Value)
                             continue;
-                        check.Add(new Tuple<string, int, string, string>(entry.Key, kv.Key, engText, kv.Value));
+                        check.Add(new DiffResultEntry(entry.Key, kv.Key, engText, kv.Value));
                     }
                     else if (!SameSpecialCharacters(engText, kv.Value))
                     {
-                        check.Add(new Tuple<string, int, string, string>(entry.Key, kv.Key, engText, kv.Value));
+                        check.Add(new DiffResultEntry(entry.Key, kv.Key, engText, kv.Value));
                     }
                 }
 

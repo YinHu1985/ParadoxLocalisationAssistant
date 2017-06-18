@@ -97,18 +97,26 @@ namespace ParadoxLocalisationAssistant
             diffyml.AppendLine(null, -1, GetLanguageTag(language) + ":", null);
             foreach (var entry in diff)
             {
-                string chitext = oldTranslation.LookupText(entry.Item1, entry.Item2);
-                diffyml.AppendLine(null, -1, "# new: " + entry.Item3, null);
-                diffyml.AppendLine(null, -1, "# old: " + entry.Item4, null);
+                string chitext = oldTranslation.LookupText(entry.Tag, entry.Version);
+                diffyml.AppendLine(null, -1, "# new: " + entry.NewText, null);
+                diffyml.AppendLine(null, -1, "# old: " + entry.OldText, null);
 
                 if (chitext != null)
-                    diffyml.AppendLine(entry.Item1, entry.Item2, chitext, null);
+                {
+                    diffyml.AppendLine(entry.Tag, entry.Version, chitext, null);
+                }
                 else
-                    diffyml.AppendLine(entry.Item1, entry.Item2, entry.Item3, null);
+                {
+                    var lastestText = oldTranslation.LookupLatestText(entry.Tag);
+                    if (lastestText != null)
+                        diffyml.AppendLine(entry.Tag, entry.Version, lastestText.Item2, null);
+                    else
+                        diffyml.AppendLine(entry.Tag, entry.Version, entry.NewText, null);
+                }
 
                 // Remove trnaslation, prepare for export
                 if (chitext != null)
-                    oldTranslation.Remove(entry.Item1, entry.Item2);
+                    oldTranslation.Remove(entry.Tag, entry.Version);
             }
 
             diffyml.Write(diffFilePath);
@@ -117,6 +125,99 @@ namespace ParadoxLocalisationAssistant
                 return Localization.BatchExportLocalization(oldTranslation, newOriginalPath, newOriginalFormat, null, outputPath, outputFormat);
 
             return true;
+        }
+
+        public static bool DoMerge(string newOriginalPath, string newOriginalFormat, string oldOriginalPath, string oldOriginalFormat,
+            string oldTranslationPath, string oldTranslationFormat, string inputPath, string inputFormat, string outputPath, string outputFormat, 
+            string diffFilePath, string language, bool checkSpecialChar, bool ignoreSame, string checkFilePath)
+        {
+            SingleLanguageDB input = new SingleLanguageDB(language);
+            SingleLanguageDB newOriginal = new SingleLanguageDB(language);
+            Localization.BatchImportToSingleLanguageDB(input, inputPath, inputFormat);
+            Localization.BatchImportToSingleLanguageDB(newOriginal, newOriginalPath, newOriginalFormat);
+            
+            // optional
+            SingleLanguageDB oldOriginal = null;
+            SingleLanguageDB oldTranslation = null;
+            if (oldOriginalPath != null && oldOriginalFormat != null)
+            {
+                oldOriginal = new SingleLanguageDB(language);
+                Localization.BatchImportToSingleLanguageDB(oldOriginal, oldOriginalPath, oldOriginalFormat);
+            }
+            if (oldTranslationPath != null && oldTranslationFormat != null)
+            {
+                oldTranslation = new SingleLanguageDB(language);
+                Localization.BatchImportToSingleLanguageDB(oldTranslation, oldTranslationPath, oldTranslationFormat);
+            }
+
+            Dictionary<string, string> RemovedDiffChi = new Dictionary<string, string>();
+            Dictionary<string, string> RemovedDiffEng = new Dictionary<string, string>();
+            // 1. Remove diff from old translation 
+            if (oldOriginal != null && oldTranslation != null)
+            {
+                var diff = Localization.Compare(oldOriginal, newOriginal, false);
+                foreach (var entry in diff)
+                {
+                    string chitext = oldTranslation.LookupText(entry.Tag, entry.Version);
+                    if (chitext != null)
+                    {
+                        RemovedDiffChi[entry.Tag] = chitext;
+                        RemovedDiffEng[entry.Tag] = entry.OldText;
+                        oldTranslation.Remove(entry.Tag, entry.Version);
+                    }
+                }
+
+            }
+
+            // 2. Merge in old translation to input 
+            if (oldTranslation != null)
+            {
+                Localization.MergeIn(input, oldTranslation, LocalizationDB.ImportMode.kIgnore);
+            }
+
+            // 3. Find diff entires 
+            YMLSafeFile diffyml = new YMLSafeFile();
+            diffyml.AppendLine(null, -1, GetLanguageTag(language) + ":", null);
+            var missing = Localization.GetMissingEntries(newOriginal, input, false);
+            foreach (var entry in missing)
+            {
+                string chi = null;
+                if (RemovedDiffChi.ContainsKey(entry.Tag))
+                    chi = RemovedDiffChi[entry.Tag];
+                string oldeng = null;
+                if (RemovedDiffChi.ContainsKey(entry.Tag))
+                    oldeng = RemovedDiffEng[entry.Tag];
+                diffyml.AppendLine(null, -1, "# Missing. Original: " + entry.NewText, null);
+                if (oldeng != null)
+                    diffyml.AppendLine(null, -1, "#      old Original: " + oldeng, null);
+                diffyml.AppendLine(entry.Tag, entry.Version, chi != null ? chi : entry.OldText, null);
+            }
+            diffyml.Write(diffFilePath);
+
+            // 3. Checks
+            if (checkSpecialChar)
+            {
+                // check missing entries first as we will remove entries failed the check as well.
+
+                var check = Localization.CheckTranslation(newOriginal, input, ignoreSame);
+                YMLSafeFile checkyml = new YMLSafeFile();
+                checkyml.AppendLine(null, -1, GetLanguageTag(language) + ":", null);
+
+                foreach (var entry in check)
+                {
+                    if (entry.NewText != null)
+                    {
+                        checkyml.AppendLine(null, -1, "# Check Fail, Original: " + entry.NewText, null);
+                        checkyml.AppendLine(entry.Tag, entry.Version, entry.OldText, null);
+                    }
+                    // Remove trnaslation, prepare for export
+                    input.Remove(entry.Tag, entry.Version);
+                }
+                checkyml.Write(checkFilePath);
+            }
+
+            // 4. Export the merged translation
+            return Localization.BatchExportLocalization(input, newOriginalPath, newOriginalFormat, null, outputPath, outputFormat);
         }
     }
 }

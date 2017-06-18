@@ -41,5 +41,26 @@
     <Setting Name="DiffFilePath" Type="System.String" Scope="User">
       <Value Profile="(Default)" />
     </Setting>
+    <Setting Name="MergeInputPath" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="MergeInputFormat" Type="System.String" Scope="User">
+      <Value Profile="(Default)">pml-safe</Value>
+    </Setting>
+    <Setting Name="MergeOutputPath" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="MergeOutputFormat" Type="System.String" Scope="User">
+      <Value Profile="(Default)">pml</Value>
+    </Setting>
+    <Setting Name="CheckSpecialChar" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
+    <Setting Name="CheckFilePath" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="IgnorePotentialUntranslated" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
   </Settings>
 </SettingsFile>
