@@ -372,13 +372,14 @@ namespace ParadoxLocalisationAssistant
         }
 
         static void ScanSpecialToken(string str, out Dictionary<string, int> dollar, out Dictionary<string, int> bracket,
-            out Dictionary<string, int> color, out Dictionary<string, int> pic, out int currency)
+            out Dictionary<string, int> color, out Dictionary<string, int> pic, out int currency, out Dictionary<string, int> escape)
         {
             dollar = new Dictionary<string, int>();
             bracket = new Dictionary<string, int>();
             color = new Dictionary<string, int>();
             pic = new Dictionary<string, int>();
             currency = 0;
+            escape = new Dictionary<string, int>();
             for (int i = 0; i < str.Length; ++i)
             {
                 if (str[i] == '$')
@@ -457,6 +458,19 @@ namespace ParadoxLocalisationAssistant
                 {
                     currency++;
                 }
+                else if (str[i] == '\\')
+                {
+                    string token;
+                    if (++i < str.Length)
+                        token = str[i].ToString();
+                    else
+                        token = "EOL";
+                    if (escape.ContainsKey(token))
+                        escape[token]++;
+                    else
+                        escape[token] = 1;
+                    continue;
+                }
             }
         }
 
@@ -485,12 +499,13 @@ namespace ParadoxLocalisationAssistant
             Dictionary<string, int> bracket1, bracket2;
             Dictionary<string, int> pic1, pic2;
             int currency1, currency2;
+            Dictionary<string, int> escape1, escape2;
 
-            ScanSpecialToken(str1, out dollar1, out bracket1, out color1, out pic1, out currency1);
-            ScanSpecialToken(str2, out dollar2, out bracket2, out color2, out pic2, out currency2);
+            ScanSpecialToken(str1, out dollar1, out bracket1, out color1, out pic1, out currency1, out escape1);
+            ScanSpecialToken(str2, out dollar2, out bracket2, out color2, out pic2, out currency2, out escape2);
 
-            if (!CompareDic(dollar1, dollar2) || !CompareDic(bracket1, bracket2)
-                || !CompareDic(color1, color2) || !CompareDic(pic1, pic2) || currency1 != currency2)
+            if (!CompareDic(dollar1, dollar2) || !CompareDic(bracket1, bracket2) || !CompareDic(color1, color2) 
+                || !CompareDic(pic1, pic2) || currency1 != currency2 || !CompareDic(escape1, escape2))
                 return false;
 
             return true;
@@ -689,10 +704,17 @@ namespace ParadoxLocalisationAssistant
                 }
                 if (input[i] == '§')
                 {
-                    safeString.Append("<A7-");
-                    safeString.Append(input[i + 1]);
-                    safeString.Append(">");
-                    ++i;
+                    if (i + 1 < input.Count())
+                    {
+                        safeString.Append("<A7-");
+                        safeString.Append(input[i + 1]);
+                        safeString.Append(">");
+                        ++i;
+                    }
+                    else
+                    {
+                        safeString.Append("<A7>");
+                    }
                     continue;
                 }
                 safeString.Append(input[i]);
@@ -757,9 +779,15 @@ namespace ParadoxLocalisationAssistant
                         continue;
                     }
                 }
-                else if (input[i] == '<' && i + 5 < input.Count() && input[i + 1] == 'A' && input[i + 2] == '7' && input[i + 3] == '-')
+                else if (input[i] == '<' && i + 5 < input.Count() && input[i + 1] == 'A' && input[i + 2] == '7')
                 {
-                    if (input[i + 4] != 0 && input[i + 5] == '>')
+                    if (input[i + 3] == '>')
+                    {
+                        unsafeString.Append('§');
+                        i += 3;
+                        continue;
+                    }
+                    else if (input[i + 3] == '-' && input[i + 4] != 0 && input[i + 5] == '>')
                     {
                         unsafeString.Append('§');
                         unsafeString.Append(input[i + 4]);
