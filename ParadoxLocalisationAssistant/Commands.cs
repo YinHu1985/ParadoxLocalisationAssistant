@@ -152,14 +152,15 @@ namespace ParadoxLocalisationAssistant
 
             Dictionary<string, string> RemovedDiffChi = new Dictionary<string, string>();
             Dictionary<string, string> RemovedDiffEng = new Dictionary<string, string>();
-            // 1. Remove diff from old translation 
+            // 1. Remove diff from old translation (but allow them if they are in new original)
             if (oldOriginal != null && oldTranslation != null)
             {
                 var diff = Localization.Compare(oldOriginal, newOriginal, false);
                 foreach (var entry in diff)
                 {
                     string chitext = oldTranslation.LookupText(entry.Tag, entry.Version);
-                    if (chitext != null)
+                    string newtext = newOriginal.LookupText(entry.Tag, entry.Version);
+                    if (chitext != null && newtext == null)
                     {
                         RemovedDiffChi[entry.Tag] = chitext;
                         RemovedDiffEng[entry.Tag] = entry.OldText;
