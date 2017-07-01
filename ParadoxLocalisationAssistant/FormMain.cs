@@ -140,16 +140,22 @@ namespace ParadoxLocalisationAssistant
             if (result == DialogResult.OK)
             {
                 path = folderBrowserDialog1.SelectedPath;
-                if (sender == btnSelectDiffDiffFilePath)
-                    txtDiffDiffFilePath.Text = path;
-                else if (sender == btnSelectDiffNewOriginalPath)
-                    txtDiffNewOriginalPath.Text = path;
-                else if (sender == btnSelectDiffOldOriginalPath)
-                    txtDiffOldOriginalPath.Text = path;
-                else if (sender == btnSelectDiffOldTranslationPath)
-                    txtDiffOldTranslationPath.Text = path;
-                else if (sender == btnSelectDiffOutputPath)
-                    txtDiffOutputPath.Text = path;
+                //if (sender == btnSelectDiffDiffFilePath)
+                //    txtDiffDiffFilePath.Text = path;
+                //else if (sender == btnSelectDiffNewOriginalPath)
+                //    txtDiffNewOriginalPath.Text = path;
+                //else if (sender == btnSelectDiffOldOriginalPath)
+                //    txtDiffOldOriginalPath.Text = path;
+                //else if (sender == btnSelectDiffOldTranslationPath)
+                //    txtDiffOldTranslationPath.Text = path;
+                //else if (sender == btnSelectDiffOutputPath)
+                //    txtDiffOutputPath.Text = path;
+
+                Point pt = ((Button)sender).Location;
+                pt.Offset(-10, 5);
+                Control ctr = ((Button)sender).Parent.GetChildAtPoint(pt);
+                if (ctr.GetType() == typeof(TextBox))
+                    ctr.Text = path;
             }
 
         }
@@ -204,6 +210,27 @@ namespace ParadoxLocalisationAssistant
                 Commands.DoMerge(newOriginalPath, newOriginalFormat, oldOriginalPath, oldOriginalFormat,
                     oldTranslationPath, oldTranslationFormat, mergeInputPath, mergeInputFormat, mergeOutputPath, mergeOutputFormat, 
                     diffFilePath, language, checkSpecialChar, ignoreSame, checkFilePath);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message + "\n\n" + ex.StackTrace);
+            }
+        }
+
+        private void btnConvert_Click(object sender, EventArgs e)
+        {
+            string inputPath = txtConvertInputPath.Text;
+            string outputPath = txtConvertOutputPath.Text;
+
+            string inputFormat = cmbConvertInputFormat.Text;
+            string outputFormat = cmbConvertOutputFormat.Text;
+
+            int splitLine = 0;
+           // string strSplitLine = null;
+
+            try
+            {
+                Commands.DoConvert(inputPath, inputFormat, outputPath, outputFormat, splitLine);
             }
             catch (Exception ex)
             {

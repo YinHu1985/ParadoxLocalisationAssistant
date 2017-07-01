@@ -128,14 +128,14 @@ namespace ParadoxLocalisationAssistant
         }
 
         public static bool DoMerge(string newOriginalPath, string newOriginalFormat, string oldOriginalPath, string oldOriginalFormat,
-            string oldTranslationPath, string oldTranslationFormat, string inputPath, string inputFormat, string outputPath, string outputFormat, 
+            string oldTranslationPath, string oldTranslationFormat, string inputPath, string inputFormat, string outputPath, string outputFormat,
             string diffFilePath, string language, bool checkSpecialChar, bool ignoreSame, string checkFilePath)
         {
             SingleLanguageDB input = new SingleLanguageDB(language);
             SingleLanguageDB newOriginal = new SingleLanguageDB(language);
             Localization.BatchImportToSingleLanguageDB(input, inputPath, inputFormat);
             Localization.BatchImportToSingleLanguageDB(newOriginal, newOriginalPath, newOriginalFormat);
-            
+
             // optional
             SingleLanguageDB oldOriginal = null;
             SingleLanguageDB oldTranslation = null;
@@ -220,5 +220,10 @@ namespace ParadoxLocalisationAssistant
             // 4. Export the merged translation
             return Localization.BatchExportLocalization(input, newOriginalPath, newOriginalFormat, null, outputPath, outputFormat);
         }
-    }
+
+        public static bool DoConvert(string inputPath, string inputFormat, string outputPath, string outputFormat, int splitLine)
+        {
+            return Localization.BatchExportLocalization(null, inputPath, inputFormat, null, outputPath, outputFormat, splitLine);
+        }
+    } 
 }

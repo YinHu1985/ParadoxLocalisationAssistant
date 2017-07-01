@@ -204,7 +204,7 @@ namespace ParadoxLocalisationAssistant
                 splitLine = Convert.ToInt32(strSplitLine);
             };
 
-            return Localization.BatchExportLocalization(null, inputPath, inputFormat, null, outputPath, outputFormat, splitLine);
+            return Commands.DoConvert(inputPath, inputFormat, outputPath, outputFormat, splitLine);
         }
 
         static bool DoSplit(Dictionary<string, string> options)
